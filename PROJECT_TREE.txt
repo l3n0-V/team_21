@@ -1,0 +1,28 @@
+.
+├── App.js
+├── DEVELOPER_GUIDE.md
+├── PROJECT_SUMMARY.md
+├── PROJECT_TREE.txt
+├── README.md
+├── USER_GUIDE.md
+├── app.json
+├── index.js
+├── package-lock.json
+├── package.json
+├── assets
+│   ├── adaptive-icon.png
+│   ├── favicon.png
+│   ├── icon.png
+│   └── splash-icon.png
+├── components
+│   └── ChallengeCard.js
+├── data
+│   └── challenges.js
+├── screens
+│   ├── ChallengesScreen.js
+│   ├── HomeScreen.js
+│   └── ProgressScreen.js
+└── utils
+    └── storage.js
+
+6 directories, 20 files
