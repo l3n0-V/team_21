@@ -1,0 +1,56 @@
+from fastapi import APIRouter
+
+router = APIRouter()
+
+# mirrors mobile/src/data/challenges.json
+SEED = {
+    "daily": [
+        {
+            "id": "d1",
+            "title": "How to order coffee",
+            "prompt": "Order a coffee politely",
+            "target": "Hi! I would like a coffee, please.",
+            "difficulty": 1,
+            "frequency": "daily",
+            "description": "Practice ordering a coffee. Focus on /r/ and polite tone.",
+        },
+        {
+            "id": "d2",
+            "title": "Introduce yourself",
+            "prompt": "Introduce yourself in one sentence",
+            "target": "Hello, my name is ___.",
+            "difficulty": 1,
+            "frequency": "daily",
+            "description": "Say your name clearly with correct stress.",
+        },
+    ],
+    "weekly": [
+        {
+            "id": "w1",
+            "title": "Order a coffee IRL",
+            "difficulty": 2,
+            "frequency": "weekly",
+            "description": "Go to a café and order a coffee in English. Record a short debrief.",
+        }
+    ],
+    "monthly": [
+        {
+            "id": "m1",
+            "title": "Talk about the weather",
+            "difficulty": 2,
+            "frequency": "monthly",
+            "description": "Have a 1-minute chat with someone about the weather. Reflect on it.",
+        },
+        {
+            "id": "m2",
+            "title": "Introduce yourself to a new person",
+            "difficulty": 3,
+            "frequency": "monthly",
+            "description": "Meet someone new, introduce yourself, and ask one follow-up question.",
+        },
+    ],
+}
+
+@router.get("")
+def get_all():
+    return SEED
