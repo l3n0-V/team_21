@@ -232,4 +232,20 @@ function clearAuthFields() {
 	clearInputField(passwordInputEl)
 }
 
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+const auth = getAuth();
+
+// This runs automatically when a user logs in or refreshes
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    const token = await user.getIdToken(true);
+
+    // 🔹 Keep token available for API calls
+    window.currentUserToken = token;
+
+    console.log("Firebase ID token ready:", token.substring(0, 25) + "..."); // short preview
+  } else {
+    console.log("No user is signed in.");
+  }
+});
 

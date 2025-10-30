@@ -4,13 +4,19 @@ from functools import wraps
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from datetime import timedelta
+from datetime import datetime
 import os
 from dotenv import load_dotenv
+from flask import jsonify
+from flask_cors import CORS
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
+
+cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+CORS(app, resources={r"/*": {"origins": cors_origins or "*"}})
 
 # Configure session cookie settings
 app.config['SESSION_COOKIE_SECURE'] = True  # Ensure cookies are sent over HTTPS
@@ -119,6 +125,52 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
+
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok"}), 200
+
+@app.get("/firestore-test")
+def firestore_test():
+    doc = db.collection("diagnostics").document("ping")
+    doc.set({"ok": True, "ts": datetime.utcnow().isoformat()})
+    snap = doc.get()
+    return jsonify({"exists": snap.exists, "data": snap.to_dict()}), 200
+
+from flask import request, jsonify
+from auth_mw import require_auth
+from services_firestore import add_attempt, get_user_stats, set_weekly_verification, get_leaderboard
+
+@app.post("/scoreDaily")
+@require_auth
+def score_daily():
+    uid = request.user["uid"]
+    body = request.get_json(force=True)
+    # MOCK result for now (Whisper later)
+    result = {"xp_gained": 10, "feedback": "Great pronunciation!", "pass": True}
+    add_attempt(uid, body.get("challenge_id"), body.get("audio_url"), result)
+    return jsonify(result), 200
+
+@app.post("/verifyWeekly")
+@require_auth
+def verify_weekly():
+    uid = request.user["uid"]
+    body = request.get_json(force=True)
+    week = body.get("week")  # e.g., "2025-W44"
+    badge = "Week Streak x3"  # mock
+    set_weekly_verification(uid, week, badge)
+    return jsonify({"verified": True, "badge": badge}), 200
+
+@app.get("/userStats")
+@require_auth
+def user_stats():
+    uid = request.user["uid"]
+    return jsonify(get_user_stats(uid)), 200
+
+@app.get("/leaderboard")
+def leaderboard():
+    period = request.args.get("period", "weekly")
+    return jsonify(get_leaderboard(period)), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
