@@ -2,3 +2,5 @@ fastapi==0.115.2
 uvicorn[standard]==0.32.0
 python-multipart==0.0.9
 pydantic==2.9.2
+firebase-admin==6.5.0
+google-cloud-storage==2.16.0
