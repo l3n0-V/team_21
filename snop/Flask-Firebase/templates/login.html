@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-  <title>Flask Template</title>
+  <title>SNOP</title>
   </head>
 
   <body>
@@ -56,8 +56,8 @@
 
     {% include 'footer.html' %}
 
-    <script src="{{ url_for('static', filename='login-auth.js') }}" type="module"></script>
-    <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
+    <script type = "module" src="{{ url_for('static', filename='login-auth.js') }}" type="module"></script>
+    <script type = "module" src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
 
   </body>
 
