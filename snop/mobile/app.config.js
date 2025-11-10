@@ -20,5 +20,6 @@ export default {
   },
   web: { bundler: "metro" },
   plugins: ["expo-asset"],
-  extra: { API_BASE_URL: "http://127.0.0.1:8000" }
+  // API_BASE_URL is now centralized in shared/config/endpoints.js
+  extra: {}
 };
