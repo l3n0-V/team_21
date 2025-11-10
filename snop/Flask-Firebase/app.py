@@ -140,16 +140,59 @@ def firestore_test():
 from flask import request, jsonify
 from auth_mw import require_auth
 from services_firestore import add_attempt, get_user_stats, set_weekly_verification, get_leaderboard
+from services_challenges import get_challenges_by_frequency, get_challenge_by_id, add_challenge
+from services_pronunciation import evaluate_pronunciation, mock_evaluate_pronunciation
 
 @app.post("/scoreDaily")
 @require_auth
 def score_daily():
     uid = request.user["uid"]
     body = request.get_json(force=True)
-    # MOCK result for now (Whisper later)
-    result = {"xp_gained": 10, "feedback": "Great pronunciation!", "pass": True}
-    add_attempt(uid, body.get("challenge_id"), body.get("audio_url"), result)
-    return jsonify(result), 200
+
+    # Validate required fields
+    challenge_id = body.get("challenge_id")
+    audio_url = body.get("audio_url")
+
+    if not challenge_id:
+        return jsonify({"error": "challenge_id is required"}), 400
+    if not audio_url:
+        return jsonify({"error": "audio_url is required"}), 400
+
+    # Get the challenge to know the target phrase
+    challenge = get_challenge_by_id(challenge_id)
+    if not challenge:
+        return jsonify({"error": "Challenge not found"}), 404
+
+    # Check if it's a daily challenge with a target phrase
+    target_phrase = challenge.get("target")
+    if not target_phrase:
+        return jsonify({"error": "This challenge doesn't have a target phrase for pronunciation"}), 400
+
+    difficulty = challenge.get("difficulty", 1)
+
+    # Check if we should use mock or real evaluation
+    use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
+
+    try:
+        if use_mock:
+            # Use mock evaluation for testing
+            result = mock_evaluate_pronunciation(target_phrase, difficulty)
+        else:
+            # Use real Whisper API evaluation
+            result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
+
+        # Store the attempt in Firestore
+        add_attempt(uid, challenge_id, audio_url, result)
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        # Log the error and return a generic error response
+        print(f"Error in score_daily: {e}")
+        return jsonify({
+            "error": "Failed to evaluate pronunciation",
+            "details": str(e)
+        }), 500
 
 @app.post("/verifyWeekly")
 @require_auth
@@ -171,6 +214,53 @@ def user_stats():
 def leaderboard():
     period = request.args.get("period", "weekly")
     return jsonify(get_leaderboard(period)), 200
+
+# Challenge API Endpoints
+@app.get("/challenges/daily")
+def challenges_daily():
+    """Get all daily challenges."""
+    challenges = get_challenges_by_frequency("daily")
+    return jsonify({"challenges": challenges}), 200
+
+@app.get("/challenges/weekly")
+def challenges_weekly():
+    """Get all weekly challenges."""
+    challenges = get_challenges_by_frequency("weekly")
+    return jsonify({"challenges": challenges}), 200
+
+@app.get("/challenges/monthly")
+def challenges_monthly():
+    """Get all monthly challenges."""
+    challenges = get_challenges_by_frequency("monthly")
+    return jsonify({"challenges": challenges}), 200
+
+@app.get("/challenges/<challenge_id>")
+def get_challenge(challenge_id):
+    """Get a specific challenge by ID."""
+    challenge = get_challenge_by_id(challenge_id)
+    if challenge:
+        return jsonify(challenge), 200
+    return jsonify({"error": "Challenge not found"}), 404
+
+@app.post("/challenges")
+@require_auth
+def create_challenge():
+    """Create a new challenge (admin only for now)."""
+    body = request.get_json(force=True)
+
+    # Validate required fields
+    required_fields = ["title", "difficulty", "frequency", "description"]
+    for field in required_fields:
+        if field not in body:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+
+    # Validate frequency
+    if body["frequency"] not in ["daily", "weekly", "monthly"]:
+        return jsonify({"error": "Frequency must be 'daily', 'weekly', or 'monthly'"}), 400
+
+    # Add the challenge
+    challenge_id = add_challenge(body)
+    return jsonify({"id": challenge_id, "message": "Challenge created successfully"}), 201
 
 if __name__ == '__main__':
     app.run(debug=True)

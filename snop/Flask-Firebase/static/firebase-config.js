@@ -22,3 +22,9 @@ const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
 
 export { auth, provider, db };
+
+
+curl "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?ke
+  y=AIzaSyAKF663iLJDW4p5luNm0_avaS0Apeo-5Ow" -H "Content-Type: application/json"
+   -d "{\"email\":\"ericandersen2002@gmail.com\",\"password\":\"Brann2007\",\"returnSecureTo
+  ken\":true}"
