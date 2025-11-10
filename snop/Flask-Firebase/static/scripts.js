@@ -1,7 +1,7 @@
 
-// Toggles the hamburger menu with click
+// Toggles the menu with click
 
-document.querySelector('.hamburger').addEventListener('click', function() {
+document.querySelector('.menu').addEventListener('click', function() {
     var navRight = document.getElementById('navbarRight');
     if (navRight.style.left === "0px") {
         navRight.style.left = "-100%"; // Slide out
@@ -10,7 +10,7 @@ document.querySelector('.hamburger').addEventListener('click', function() {
     }
 });
 
-document.querySelector('.hamburger').addEventListener('click', function() {
+document.querySelector('.menu').addEventListener('click', function() {
     document.getElementById('navbarRight').style.left = "0"; // Slide in
 });
 

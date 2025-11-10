@@ -7,7 +7,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   sendPasswordResetEmail,
-  onAuthStateChanged, // 🧠 CHANGE: added this
+  onAuthStateChanged, // added this from original code
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
 
 
@@ -30,7 +30,7 @@ const errorMsgGoogleSignIn = document.getElementById("google-signin-error-messag
 
 
 /* == UI - Event Listeners == */
-// 🧠 CHANGE: added `?.` so that if an element doesn’t exist, it won’t throw an error.
+// Change: added `?.` so that if an element doesn’t exist, it won’t throw an error.
 // It’s just a safety check.
 signInWithGoogleButtonEl?.addEventListener("click", authSignInWithGoogle);
 signInButtonEl?.addEventListener("click", authSignInWithEmail);
@@ -43,18 +43,18 @@ forgotPasswordButtonEl?.addEventListener("click", resetPassword);
 
 /* === Main Code === */
 
-// ✅ Functions below are unchanged except for minor improvements (comments explain where)
+// Functions below are unchanged except for minor improvements (comments explain where)
 
 async function authSignInWithGoogle() {
   provider.setCustomParameters({ prompt: "select_account" });
 
   try {
     const result = await signInWithPopup(auth, provider);
-    if (!result?.user?.email) throw new Error("No email returned from Google."); // 🧠 CHANGE: safer null check
+    if (!result?.user?.email) throw new Error("No email returned from Google."); //  Change: safer null check
     const idToken = await result.user.getIdToken();
     loginUser(result.user, idToken);
   } catch (error) {
-    // 🧠 CHANGE: Added UI-friendly error message option
+    // Change: Added UI-friendly error message option
     console.error("Error during sign-in with Google", error);
     if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = error.message || "Google sign-in failed.";
   }
@@ -76,7 +76,7 @@ async function authSignUpWithGoogle() {
 
 
 function authSignInWithEmail() {
-  const email = emailInputEl?.value || "";  // 🧠 CHANGE: safer null handling
+  const email = emailInputEl?.value || "";  // Change: safer null handling
   const password = passwordInputEl?.value || "";
 
   signInWithEmailAndPassword(auth, email, password)
@@ -85,7 +85,7 @@ function authSignInWithEmail() {
       loginUser(userCredential.user, idToken);
     })
     .catch((error) => {
-      // (same logic as yours, just cleaner)
+      // (same logic as it was, just cleaner)
       const code = error.code;
       if (code === "auth/invalid-email") errorMsgEmail && (errorMsgEmail.textContent = "Invalid email");
       else if (code === "auth/invalid-credential") errorMsgPassword && (errorMsgPassword.textContent = "Invalid email or password");
@@ -103,7 +103,7 @@ function authCreateAccountWithEmail() {
     .then(async (userCredential) => {
       const user = userCredential.user;
       await addNewUserToFirestore(user);
-      // 🧠 CHANGE: replaced `setTimeout(100)` with proper async delay (commented example)
+      // Change: replaced `setTimeout(100)` with proper async delay (commented example)
       // await new Promise(r => setTimeout(r, 100));
 
       const idToken = await user.getIdToken();
@@ -168,8 +168,8 @@ function clearAuthFields() { clearInputField(emailInputEl); clearInputField(pass
 
 
 /* === TOKEN REFRESH HOOK === */
-// 🧠 CHANGE: Removed your duplicate `const auth = getAuth()` block that caused the crash.
-// 🧠 CHANGE: Switched from `auth.onAuthStateChanged(...)` to the modular API function
+// Change: Removed your duplicate `const auth = getAuth()` block that caused the crash.
+// Change: Switched from `auth.onAuthStateChanged(...)` to the modular API function
 // `onAuthStateChanged(auth, callback)` (the modern way).
 
 onAuthStateChanged(auth, async (user) => {
