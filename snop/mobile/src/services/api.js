@@ -1,7 +1,7 @@
 // services/api.js
-import { USE_MOCK, API_BASE_URL } from '../shared/config/endpoints';
-import feed from '../src/data/challenges.json'; // eks. feed
-import profile from '../src/data/profile.json'; // lag denne
+import { USE_MOCK, API_BASE_URL } from '../../shared/config/endpoints';
+import feed from '../data/challenges.json';
+import profile from '../data/profile.json';
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -53,6 +53,32 @@ const HttpAdapter = {
     const res = await fetch(`${API_BASE_URL}/user/profile`);
     return res.json();
   },
+  async scoreDaily(challengeId, audioUrl, token) {
+    const res = await fetch(`${API_BASE_URL}/scoreDaily`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        audio_url: audioUrl
+      })
+    });
+    return res.json();
+  },
+  async fetchDailyChallenges() {
+    const res = await fetch(`${API_BASE_URL}/challenges/daily`);
+    return res.json();
+  },
+  async fetchWeeklyChallenges() {
+    const res = await fetch(`${API_BASE_URL}/challenges/weekly`);
+    return res.json();
+  },
+  async fetchMonthlyChallenges() {
+    const res = await fetch(`${API_BASE_URL}/challenges/monthly`);
+    return res.json();
+  }
 };
 
 export const api = USE_MOCK ? MockAdapter : HttpAdapter;
