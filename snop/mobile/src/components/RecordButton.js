@@ -15,7 +15,14 @@ export default function RecordButton({ onStart, onStop, label = "Tap to record" 
   };
 
   return (
-    <Pressable onPress={toggle} style={[styles.btn, isRecording && styles.recording]}>
+    <Pressable
+      onPress={toggle}
+      style={({ pressed }) => [
+        styles.btn,
+        isRecording && styles.recording,
+        pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
+      ]}
+    >
       <Text style={styles.txt}>{isRecording ? "Stop" : label}</Text>
       <Text style={styles.mic}>{isRecording ? "⏺" : "🎙️"}</Text>
     </Pressable>

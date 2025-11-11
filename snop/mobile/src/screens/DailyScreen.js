@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Platform } from "react-native";
 import { useChallenges } from "../context/ChallengeContext";
 import { useAudio } from "../context/AudioContext";
 import { useAuth } from "../context/AuthContext";
@@ -17,30 +17,50 @@ export default function DailyScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleScore = async () => {
-    // Check if recording exists
-    if (!lastUri) {
-      Alert.alert("Error", "No recording found");
-      return;
-    }
-
-    // Check if we have a challenge
-    if (!daily?.id) {
-      Alert.alert("Error", "Challenge not loaded");
-      return;
-    }
-
-    // Check if user is authenticated
-    if (!user?.uid) {
-      Alert.alert("Error", "User not authenticated");
-      return;
-    }
-
-    setLoading(true);
     try {
+      console.log('=== BUTTON PRESSED ===');
+      console.log('lastUri:', lastUri);
+      console.log('daily:', daily);
+      console.log('user:', user);
+      console.log('token:', token);
+
+      // Check if recording exists
+      if (!lastUri) {
+        console.log('ERROR: No recording found');
+        Alert.alert("Error", "No recording found");
+        return;
+      }
+
+      // Check if we have a challenge
+      if (!daily?.id) {
+        console.log('ERROR: Challenge not loaded');
+        Alert.alert("Error", "Challenge not loaded");
+        return;
+      }
+
+      // Check if user is authenticated
+      if (!user?.uid) {
+        console.log('ERROR: User not authenticated');
+        Alert.alert("Error", "User not authenticated");
+        return;
+      }
+
+      console.log('=== ALL CHECKS PASSED - Starting submission ===');
+      setLoading(true);
+
       // Step 1: Upload audio file to Firebase Storage
       console.log('Uploading audio file...');
       const audioUrl = await uploadAudioFile(lastUri, user.uid, daily.id);
       console.log('Audio uploaded successfully:', audioUrl);
+
+      // Show platform-specific warning for web testing
+      if (Platform.OS === 'web') {
+        console.warn('');
+        console.warn('⚠️  WEB TESTING MODE ACTIVE');
+        console.warn('⚠️  Backend will receive local file URL and cannot process actual audio');
+        console.warn('⚠️  You will see mock/error responses from backend');
+        console.warn('');
+      }
 
       // Step 2: Submit to backend for pronunciation scoring
       console.log('Submitting for pronunciation scoring...');
@@ -59,7 +79,12 @@ export default function DailyScreen() {
         Alert.alert("Keep Practicing", "Try again to improve your pronunciation!");
       }
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('=== CRITICAL ERROR ===', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       Alert.alert(
         "Submission Failed",
         error.message || "Please check your internet connection and try again."
@@ -75,7 +100,12 @@ export default function DailyScreen() {
       <Text style={styles.sub}>Say: "{daily?.target}"</Text>
 
       <View style={{ height: 16 }} />
-      <Pressable onPress={() => speak(daily?.target)}>
+      <Pressable
+        onPress={() => speak(daily?.target)}
+        style={({ pressed }) => [
+          pressed && { opacity: 0.6 }
+        ]}
+      >
         <Text style={styles.link}>🔊 Play target phrase</Text>
       </Pressable>
 
@@ -84,13 +114,29 @@ export default function DailyScreen() {
 
       <View style={{ height: 12 }} />
       <View style={styles.row}>
-        <Pressable disabled={!lastUri || loading} onPress={playLast}>
-          <Text style={[styles.btn, (!lastUri || loading) && styles.btnDisabled]}>
+        <Pressable
+          disabled={!lastUri || loading}
+          onPress={playLast}
+          style={({ pressed }) => [
+            styles.btn,
+            (!lastUri || loading) && styles.btnDisabled,
+            pressed && !loading && lastUri && { opacity: 0.6, transform: [{ scale: 0.98 }] }
+          ]}
+        >
+          <Text style={styles.btnText}>
             ▶︎ Play
           </Text>
         </Pressable>
-        <Pressable disabled={!lastUri || loading} onPress={handleScore}>
-          <Text style={[styles.btn, (!lastUri || loading) && styles.btnDisabled]}>
+        <Pressable
+          disabled={!lastUri || loading}
+          onPress={handleScore}
+          style={({ pressed }) => [
+            styles.btn,
+            (!lastUri || loading) && styles.btnDisabled,
+            pressed && !loading && lastUri && { opacity: 0.6, transform: [{ scale: 0.98 }] }
+          ]}
+        >
+          <Text style={styles.btnText}>
             {loading ? "Submitting..." : "⬆ Upload for feedback"}
           </Text>
         </Pressable>
@@ -127,8 +173,20 @@ const styles = StyleSheet.create({
   sub: { fontSize: 16, color: "#374151", marginTop: 4 },
   link: { color: "#2563eb", fontWeight: "600" },
   row: { flexDirection: "row", gap: 12, marginTop: 12 },
-  btn: { padding: 12, backgroundColor: "#e5e7eb", borderRadius: 10, fontWeight: "600" },
-  btnDisabled: { backgroundColor: "#f3f4f6", color: "#9ca3af" },
+  btn: {
+    padding: 12,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 10,
+    flex: 1,
+    alignItems: "center"
+  },
+  btnText: {
+    fontWeight: "600",
+    color: "#111827"
+  },
+  btnDisabled: {
+    backgroundColor: "#f3f4f6"
+  },
   loadingContainer: {
     marginTop: 24,
     alignItems: "center",

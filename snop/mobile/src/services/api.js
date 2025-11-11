@@ -30,6 +30,44 @@ const MockAdapter = {
     await delay(200);
     return profile;
   },
+  async scoreDaily(challengeId, audioUrl, token) {
+    await delay(500); // Simulate API delay
+    console.log('MockAdapter.scoreDaily called with:', { challengeId, audioUrl, token });
+
+    // Simulate random pronunciation scoring for testing
+    const randomScore = Math.floor(Math.random() * 30) + 70; // 70-100
+    const pass = randomScore >= 75;
+
+    return {
+      xp_gained: pass ? 15 : 5,
+      feedback: pass
+        ? "Great pronunciation! Keep up the good work. (Mock response)"
+        : "Good effort! Try focusing on clarity. (Mock response)",
+      pass: pass,
+      pronunciation_score: randomScore,
+      transcription: "Mock transcription of your audio",
+      similarity: randomScore / 100
+    };
+  },
+  async fetchDailyChallenges() {
+    await delay(250);
+    console.log('MockAdapter.fetchDailyChallenges called');
+    // Filter feed for daily challenges or return all if no frequency field
+    const dailyChallenges = feed.filter(c => c.frequency === 'daily' || !c.frequency);
+    return { challenges: dailyChallenges };
+  },
+  async fetchWeeklyChallenges() {
+    await delay(250);
+    console.log('MockAdapter.fetchWeeklyChallenges called');
+    const weeklyChallenges = feed.filter(c => c.frequency === 'weekly');
+    return { challenges: weeklyChallenges };
+  },
+  async fetchMonthlyChallenges() {
+    await delay(250);
+    console.log('MockAdapter.fetchMonthlyChallenges called');
+    const monthlyChallenges = feed.filter(c => c.frequency === 'monthly');
+    return { challenges: monthlyChallenges };
+  }
 };
 
 const HttpAdapter = {
@@ -81,5 +119,11 @@ const HttpAdapter = {
   }
 };
 
-export const api = USE_MOCK ? MockAdapter : HttpAdapter;
+// Log which adapter is being used and available methods
+const selectedAdapter = USE_MOCK ? MockAdapter : HttpAdapter;
+console.log('API Mode:', USE_MOCK ? 'MOCK' : 'HTTP');
+console.log('API Base URL:', API_BASE_URL);
+console.log('Available API methods:', Object.keys(selectedAdapter));
+
+export const api = selectedAdapter;
 

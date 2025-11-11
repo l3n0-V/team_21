@@ -18,8 +18,23 @@ export default function LoginScreen({ navigation }) {
       <Text style={styles.header}>Log in</Text>
       <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input}/>
       <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry style={styles.input}/>
-      <Pressable onPress={submit} style={styles.btn}><Text style={styles.btnText}>Continue</Text></Pressable>
-      <Pressable onPress={() => navigation.navigate("Register")}><Text style={{ color: "#2563eb" }}>No account? Register</Text></Pressable>
+      <Pressable
+        onPress={submit}
+        style={({ pressed }) => [
+          styles.btn,
+          pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
+        ]}
+      >
+        <Text style={styles.btnText}>Continue</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => navigation.navigate("Register")}
+        style={({ pressed }) => [
+          pressed && { opacity: 0.6 }
+        ]}
+      >
+        <Text style={{ color: "#2563eb" }}>No account? Register</Text>
+      </Pressable>
     </View>
   );
 }

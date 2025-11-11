@@ -39,7 +39,14 @@ function Section({ title, items, onPressSeeAll }) {
     <View style={{ marginVertical: 12 }}>
       <View style={styles.row}>
         <Text style={styles.title}>{title} challenges</Text>
-        <Pressable onPress={onPressSeeAll}><Text style={styles.link}>Tap to see all →</Text></Pressable>
+        <Pressable
+          onPress={onPressSeeAll}
+          style={({ pressed }) => [
+            pressed && { opacity: 0.6 }
+          ]}
+        >
+          <Text style={styles.link}>Tap to see all →</Text>
+        </Pressable>
       </View>
       {items.map((c) => <ChallengeCard key={c.id} challenge={c} />)}
     </View>
