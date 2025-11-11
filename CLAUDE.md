@@ -148,6 +148,15 @@ All Firestore operations are centralized in `snop/Flask-Firebase/services_firest
 - `GET /challenges/<id>` - Get specific challenge by ID
 - `POST /challenges` - Create new challenge (requires auth)
 
+### User Profile Routes
+- `POST /auth/register` - Register new user (email, password, display_name)
+  - Returns: `{uid, email, display_name, custom_token}`
+- `GET /user/profile` - Get current user's profile (requires auth)
+  - Returns: User profile with XP, streaks, email, display_name, etc.
+- `PUT /user/profile` - Update user profile (requires auth)
+  - Body: `{display_name, photo_url, bio, preferences}`
+- `DELETE /user/account` - Delete user account (requires auth)
+
 ### Protected Routes (Require Bearer Token)
 - `POST /scoreDaily` - Submit pronunciation attempt with Whisper evaluation
   - Body: `{challenge_id, audio_url}`
@@ -169,6 +178,11 @@ All Firestore operations are centralized in `snop/Flask-Firebase/services_firest
    - Supports both real Whisper API and mock mode (set via `USE_MOCK_PRONUNCIATION` env var)
    - Calculates similarity score, XP, and provides feedback
    - See `snop/Flask-Firebase/SETUP.md` for testing instructions
+3. **User Profile Management**: Full user profile API implemented in `services_users.py`
+   - User registration via `/auth/register`
+   - Profile retrieval and updates via `/user/profile`
+   - Account deletion via `/user/account`
+   - User profiles stored in Firestore with display name, XP, streaks, etc.
 
 ### Current Limitations
 1. **Audio Upload**: Mobile app does not yet upload actual audio files to backend. The `audio_url` field needs Firebase Storage integration (being worked on by teammate).
