@@ -6,7 +6,76 @@ from firebase_admin import firestore
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
+def update_streak(uid):
+    """
+    Update user's daily streak based on last activity.
+
+    Logic:
+    - First attempt ever: streak = 1
+    - Already completed today: keep current streak
+    - Consecutive day: increment streak
+    - Missed day(s): reset to 1
+
+    Args:
+        uid: str - Firebase user ID
+
+    Returns:
+        int - New streak value
+    """
+    user_ref = db.collection("users").document(uid)
+    user_doc = user_ref.get()
+
+    if not user_doc.exists:
+        # First time user - initialize with streak 1
+        new_streak = 1
+        user_ref.set({
+            "current_streak": new_streak,
+            "longest_streak": new_streak
+        }, merge=True)
+        return new_streak
+
+    user_data = user_doc.to_dict()
+    last_attempt = user_data.get("last_attempt_at")
+    current_streak = user_data.get("current_streak", 0)
+    longest_streak = user_data.get("longest_streak", 0)
+
+    if not last_attempt:
+        # First attempt for this user
+        new_streak = 1
+    else:
+        # Parse the last attempt timestamp
+        last_date = datetime.fromisoformat(last_attempt.replace('Z', '+00:00')).date()
+        today = datetime.now(timezone.utc).date()
+
+        if last_date == today:
+            # Already completed today - maintain current streak
+            return current_streak
+        elif (today - last_date).days == 1:
+            # Consecutive day - increment streak
+            new_streak = current_streak + 1
+        else:
+            # Missed day(s) - reset streak
+            new_streak = 1
+
+    # Update Firestore with new streak values
+    user_ref.set({
+        "current_streak": new_streak,
+        "longest_streak": max(new_streak, longest_streak)
+    }, merge=True)
+
+    return new_streak
+
 def add_attempt(uid, challenge_id, audio_url, result):
+    """
+    Add a pronunciation attempt and update user stats including streak.
+
+    Args:
+        uid: str - Firebase user ID
+        challenge_id: str - Challenge ID
+        audio_url: str - URL to audio recording
+        result: dict - Pronunciation evaluation result
+    """
+    # Add attempt to subcollection
     attempt = {
         "challenge_id": challenge_id,
         "audio_url": audio_url,
@@ -14,17 +83,34 @@ def add_attempt(uid, challenge_id, audio_url, result):
         "created_at": now_iso(),
     }
     db.collection("users").document(uid).collection("attempts").add(attempt)
+
+    # Update streak before updating other stats
+    new_streak = update_streak(uid)
+
+    # Update user stats (XP, last attempt timestamp, and streak)
     db.collection("users").document(uid).set({
         "xp_total": firestore.Increment(result.get("xp_gained", 0)),
         "last_attempt_at": now_iso(),
+        "streak_days": new_streak  # Update with real streak value
     }, merge=True)
 
 def get_user_stats(uid):
+    """
+    Get user statistics including XP and streak information.
+
+    Args:
+        uid: str - Firebase user ID
+
+    Returns:
+        dict - User statistics with xp_total, current_streak, longest_streak, last_attempt_at
+    """
     snap = db.collection("users").document(uid).get()
     data = snap.to_dict() or {}
     return {
         "xp_total": int(data.get("xp_total", 0)),
-        "streak_days": int(data.get("streak_days", 0)),  # mock for now
+        "current_streak": int(data.get("current_streak", 0)),
+        "longest_streak": int(data.get("longest_streak", 0)),
+        "streak_days": int(data.get("streak_days", 0)),  # Alias for current_streak (backward compatibility)
         "last_attempt_at": data.get("last_attempt_at"),
     }
 
