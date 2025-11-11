@@ -142,6 +142,7 @@ from auth_mw import require_auth
 from services_firestore import add_attempt, get_user_stats, set_weekly_verification, get_leaderboard
 from services_challenges import get_challenges_by_frequency, get_challenge_by_id, add_challenge
 from services_pronunciation import evaluate_pronunciation, mock_evaluate_pronunciation
+from services_users import register_user, get_user_profile, update_user_profile, delete_user_account
 
 @app.post("/scoreDaily")
 @require_auth
@@ -212,8 +213,15 @@ def user_stats():
 
 @app.get("/leaderboard")
 def leaderboard():
+    """
+    Get leaderboard data.
+    Uses mock data by default (for demonstrations).
+    Set USE_MOCK_LEADERBOARD=false in .env to use real data.
+    """
     period = request.args.get("period", "weekly")
-    return jsonify(get_leaderboard(period)), 200
+    use_mock = os.getenv("USE_MOCK_LEADERBOARD", "true").lower() == "true"
+
+    return jsonify(get_leaderboard(period, use_mock=use_mock)), 200
 
 # Challenge API Endpoints
 @app.get("/challenges/daily")
@@ -261,6 +269,83 @@ def create_challenge():
     # Add the challenge
     challenge_id = add_challenge(body)
     return jsonify({"id": challenge_id, "message": "Challenge created successfully"}), 201
+
+# User Profile Management Endpoints
+@app.post("/auth/register")
+def auth_register():
+    """Register a new user with email and password."""
+    body = request.get_json(force=True)
+
+    # Validate required fields
+    email = body.get("email")
+    password = body.get("password")
+    display_name = body.get("display_name")
+
+    if not email:
+        return jsonify({"error": "email is required"}), 400
+    if not password:
+        return jsonify({"error": "password is required"}), 400
+
+    # Validate password strength (minimum 6 characters)
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    try:
+        result = register_user(email, password, display_name)
+        return jsonify(result), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.get("/user/profile")
+@require_auth
+def get_profile():
+    """Get the authenticated user's profile."""
+    uid = request.user["uid"]
+
+    profile = get_user_profile(uid)
+    if not profile:
+        # Create profile if it doesn't exist (for existing users)
+        from services_users import create_user_profile
+        email = request.user.get("email", "")
+        profile = create_user_profile(uid, email)
+
+    return jsonify(profile), 200
+
+@app.put("/user/profile")
+@require_auth
+def update_profile():
+    """Update the authenticated user's profile."""
+    uid = request.user["uid"]
+    body = request.get_json(force=True)
+
+    # Allowed fields to update
+    allowed_fields = ["display_name", "photo_url", "bio", "preferences"]
+    updates = {k: v for k, v in body.items() if k in allowed_fields}
+
+    if not updates:
+        return jsonify({"error": "No valid fields to update"}), 400
+
+    try:
+        updated_profile = update_user_profile(uid, updates)
+        return jsonify(updated_profile), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.delete("/user/account")
+@require_auth
+def delete_account():
+    """Delete the authenticated user's account."""
+    uid = request.user["uid"]
+
+    try:
+        result = delete_user_account(uid)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
