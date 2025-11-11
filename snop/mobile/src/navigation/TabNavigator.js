@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
+import LeaderboardScreen from "../screens/LeaderboardScreen";
 import StatsScreen from "../screens/StatsScreen";
 import { Text } from "react-native";
 
@@ -13,6 +14,11 @@ export default function TabNavigator() {
         name="Home"
         component={HomeScreen}
         options={{ tabBarIcon: () => <Text>🏠</Text> }}
+      />
+      <Tab.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{ tabBarIcon: () => <Text>🏆</Text> }}
       />
       <Tab.Screen
         name="Stats"

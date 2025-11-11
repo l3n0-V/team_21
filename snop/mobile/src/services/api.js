@@ -67,6 +67,34 @@ const MockAdapter = {
     console.log('MockAdapter.fetchMonthlyChallenges called');
     const monthlyChallenges = feed.filter(c => c.frequency === 'monthly');
     return { challenges: monthlyChallenges };
+  },
+  async getUserStats(token) {
+    await delay(500);
+    console.log('MockAdapter.getUserStats called');
+    return {
+      xp_total: 245,
+      streak_days: 7,
+      last_attempt_at: new Date().toISOString()
+    };
+  },
+  async getLeaderboard(period = 'weekly') {
+    await delay(800);
+    console.log(`MockAdapter.getLeaderboard called for period: ${period}`);
+    return {
+      period,
+      top: [
+        { uid: 'user1', name: 'Sarah Chen', xp: 485 },
+        { uid: 'user2', name: 'Mike Johnson', xp: 420 },
+        { uid: 'test-user-001', name: 'Test User', xp: 245 },
+        { uid: 'user3', name: 'Emma Davis', xp: 210 },
+        { uid: 'user4', name: 'Alex Kim', xp: 195 },
+        { uid: 'user5', name: 'Chris Martinez', xp: 180 },
+        { uid: 'user6', name: 'Jessica Lee', xp: 165 },
+        { uid: 'user7', name: 'David Brown', xp: 150 },
+        { uid: 'user8', name: 'Sophia White', xp: 135 },
+        { uid: 'user9', name: 'Ryan Taylor', xp: 120 }
+      ]
+    };
   }
 };
 
@@ -115,6 +143,20 @@ const HttpAdapter = {
   },
   async fetchMonthlyChallenges() {
     const res = await fetch(`${API_BASE_URL}/challenges/monthly`);
+    return res.json();
+  },
+  async getUserStats(token) {
+    const res = await fetch(`${API_BASE_URL}/userStats`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return res.json();
+  },
+  async getLeaderboard(period = 'weekly') {
+    const res = await fetch(`${API_BASE_URL}/leaderboard?period=${period}`);
     return res.json();
   }
 };

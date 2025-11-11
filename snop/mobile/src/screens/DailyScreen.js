@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Platform }
 import { useChallenges } from "../context/ChallengeContext";
 import { useAudio } from "../context/AudioContext";
 import { useAuth } from "../context/AuthContext";
+import { useUserStats } from "../context/UserStatsContext";
 import RecordButton from "../components/RecordButton";
 import { api } from "../services/api";
 import { speak } from "../services/ttsService";
@@ -13,6 +14,7 @@ export default function DailyScreen() {
   const daily = challenges.daily[0];
   const { begin, end, lastUri, playLast } = useAudio();
   const { token, user } = useAuth();
+  const { refreshStats } = useUserStats();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -75,6 +77,8 @@ export default function DailyScreen() {
           "Success!",
           `You earned ${response.xp_gained} XP!`
         );
+        // Refresh stats to show updated XP and streak
+        refreshStats();
       } else {
         Alert.alert("Keep Practicing", "Try again to improve your pronunciation!");
       }
