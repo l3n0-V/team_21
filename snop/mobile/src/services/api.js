@@ -49,6 +49,44 @@ const MockAdapter = {
       similarity: randomScore / 100
     };
   },
+  async scoreWeekly(challengeId, audioUrl, token) {
+    await delay(500); // Simulate API delay
+    console.log('MockAdapter.scoreWeekly called with:', { challengeId, audioUrl, token });
+
+    // Simulate random pronunciation scoring for testing
+    const randomScore = Math.floor(Math.random() * 30) + 70; // 70-100
+    const pass = randomScore >= 75;
+
+    return {
+      xp_gained: pass ? 25 : 10, // Higher XP for weekly challenges
+      feedback: pass
+        ? "Excellent work on this weekly challenge! (Mock response)"
+        : "Good try! Practice more for better results. (Mock response)",
+      pass: pass,
+      pronunciation_score: randomScore,
+      transcription: "Mock transcription of your audio",
+      similarity: randomScore / 100
+    };
+  },
+  async scoreMonthly(challengeId, audioUrl, token) {
+    await delay(500); // Simulate API delay
+    console.log('MockAdapter.scoreMonthly called with:', { challengeId, audioUrl, token });
+
+    // Simulate random pronunciation scoring for testing
+    const randomScore = Math.floor(Math.random() * 30) + 70; // 70-100
+    const pass = randomScore >= 75;
+
+    return {
+      xp_gained: pass ? 50 : 20, // Higher XP for monthly challenges
+      feedback: pass
+        ? "Outstanding! You've mastered this monthly challenge! (Mock response)"
+        : "Good effort! Keep practicing to improve. (Mock response)",
+      pass: pass,
+      pronunciation_score: randomScore,
+      transcription: "Mock transcription of your audio",
+      similarity: randomScore / 100
+    };
+  },
   async fetchDailyChallenges() {
     await delay(250);
     console.log('MockAdapter.fetchDailyChallenges called');
@@ -121,6 +159,34 @@ const HttpAdapter = {
   },
   async scoreDaily(challengeId, audioUrl, token) {
     const res = await fetch(`${API_BASE_URL}/scoreDaily`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        audio_url: audioUrl
+      })
+    });
+    return res.json();
+  },
+  async scoreWeekly(challengeId, audioUrl, token) {
+    const res = await fetch(`${API_BASE_URL}/scoreWeekly`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        audio_url: audioUrl
+      })
+    });
+    return res.json();
+  },
+  async scoreMonthly(challengeId, audioUrl, token) {
+    const res = await fetch(`${API_BASE_URL}/scoreMonthly`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
