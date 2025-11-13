@@ -140,9 +140,10 @@ def firestore_test():
 from flask import request, jsonify
 from auth_mw import require_auth
 from services_firestore import add_attempt, get_user_stats, set_weekly_verification, get_leaderboard
-from services_challenges import get_challenges_by_frequency, get_challenge_by_id, add_challenge
+from services_challenges import get_challenges_by_frequency, get_challenge_by_id, add_challenge, get_active_challenges, get_rotation_status
 from services_pronunciation import evaluate_pronunciation, mock_evaluate_pronunciation
 from services_users import register_user, get_user_profile, update_user_profile, delete_user_account
+from services_badges import check_and_award_badges, get_user_badges, get_all_badges, BADGES
 
 @app.post("/scoreDaily")
 @require_auth
@@ -184,6 +185,13 @@ def score_daily():
 
         # Store the attempt in Firestore
         add_attempt(uid, challenge_id, audio_url, result)
+
+        # Check and award badges
+        new_badges = check_and_award_badges(uid, result)
+
+        # Include new badges in response if any were earned
+        if new_badges:
+            result["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
 
         return jsonify(result), 200
 
@@ -270,6 +278,31 @@ def create_challenge():
     challenge_id = add_challenge(body)
     return jsonify({"id": challenge_id, "message": "Challenge created successfully"}), 201
 
+# Challenge Rotation Endpoints
+@app.get("/challenges/active/daily")
+def active_challenges_daily():
+    """Get currently active daily challenges (with automatic rotation)."""
+    challenges = get_active_challenges("daily")
+    return jsonify({"challenges": challenges, "frequency": "daily"}), 200
+
+@app.get("/challenges/active/weekly")
+def active_challenges_weekly():
+    """Get currently active weekly challenges (with automatic rotation)."""
+    challenges = get_active_challenges("weekly")
+    return jsonify({"challenges": challenges, "frequency": "weekly"}), 200
+
+@app.get("/challenges/active/monthly")
+def active_challenges_monthly():
+    """Get currently active monthly challenges (with automatic rotation)."""
+    challenges = get_active_challenges("monthly")
+    return jsonify({"challenges": challenges, "frequency": "monthly"}), 200
+
+@app.get("/challenges/rotation/status")
+def rotation_status():
+    """Get the current challenge rotation status for all frequencies."""
+    status = get_rotation_status()
+    return jsonify(status), 200
+
 # User Profile Management Endpoints
 @app.post("/auth/register")
 def auth_register():
@@ -346,6 +379,19 @@ def delete_account():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Badge Endpoints
+@app.get("/user/badges")
+@require_auth
+def get_badges():
+    """Get user's earned and available badges."""
+    uid = request.user["uid"]
+    return jsonify(get_user_badges(uid)), 200
+
+@app.get("/badges")
+def get_all_badge_definitions():
+    """Get all badge definitions."""
+    return jsonify(get_all_badges()), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

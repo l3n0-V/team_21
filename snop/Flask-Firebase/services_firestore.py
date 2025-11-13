@@ -1,10 +1,105 @@
 # services_firestore.py
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from firebase_config import db
 from firebase_admin import firestore
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
+
+def get_period_start(period_type):
+    """
+    Get the start timestamp for a given period type.
+
+    Args:
+        period_type: str - "daily", "weekly", or "monthly"
+
+    Returns:
+        str - ISO timestamp of period start
+    """
+    now = datetime.now(timezone.utc)
+
+    if period_type == "daily":
+        # Start of current day (midnight UTC)
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period_type == "weekly":
+        # Start of current week (Monday midnight UTC)
+        days_since_monday = now.weekday()
+        start = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period_type == "monthly":
+        # Start of current month (first day midnight UTC)
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        raise ValueError(f"Invalid period type: {period_type}")
+
+    return start.isoformat()
+
+def needs_xp_reset(last_reset_str, period_type):
+    """
+    Check if XP for a period needs to be reset.
+
+    Args:
+        last_reset_str: str - ISO timestamp of last reset
+        period_type: str - "daily", "weekly", or "monthly"
+
+    Returns:
+        bool - True if reset is needed
+    """
+    if not last_reset_str:
+        return True
+
+    last_reset = datetime.fromisoformat(last_reset_str.replace('Z', '+00:00'))
+    period_start = datetime.fromisoformat(get_period_start(period_type).replace('Z', '+00:00'))
+
+    return last_reset < period_start
+
+def update_time_based_xp(uid, xp_gained):
+    """
+    Update time-based XP (daily, weekly, monthly) with automatic reset logic.
+
+    Args:
+        uid: str - Firebase user ID
+        xp_gained: int - XP to add
+    """
+    user_ref = db.collection("users").document(uid)
+    user_doc = user_ref.get()
+
+    if not user_doc.exists:
+        # Initialize new user with time-based XP
+        user_ref.set({
+            "xp_daily": xp_gained,
+            "xp_weekly": xp_gained,
+            "xp_monthly": xp_gained,
+            "xp_daily_reset_at": get_period_start("daily"),
+            "xp_weekly_reset_at": get_period_start("weekly"),
+            "xp_monthly_reset_at": get_period_start("monthly")
+        }, merge=True)
+        return
+
+    user_data = user_doc.to_dict()
+    updates = {}
+
+    # Check and update daily XP
+    if needs_xp_reset(user_data.get("xp_daily_reset_at"), "daily"):
+        updates["xp_daily"] = xp_gained
+        updates["xp_daily_reset_at"] = get_period_start("daily")
+    else:
+        updates["xp_daily"] = firestore.Increment(xp_gained)
+
+    # Check and update weekly XP
+    if needs_xp_reset(user_data.get("xp_weekly_reset_at"), "weekly"):
+        updates["xp_weekly"] = xp_gained
+        updates["xp_weekly_reset_at"] = get_period_start("weekly")
+    else:
+        updates["xp_weekly"] = firestore.Increment(xp_gained)
+
+    # Check and update monthly XP
+    if needs_xp_reset(user_data.get("xp_monthly_reset_at"), "monthly"):
+        updates["xp_monthly"] = xp_gained
+        updates["xp_monthly_reset_at"] = get_period_start("monthly")
+    else:
+        updates["xp_monthly"] = firestore.Increment(xp_gained)
+
+    user_ref.set(updates, merge=True)
 
 def update_streak(uid):
     """
@@ -67,7 +162,7 @@ def update_streak(uid):
 
 def add_attempt(uid, challenge_id, audio_url, result):
     """
-    Add a pronunciation attempt and update user stats including streak.
+    Add a pronunciation attempt and update user stats including streak and time-based XP.
 
     Args:
         uid: str - Firebase user ID
@@ -87,9 +182,13 @@ def add_attempt(uid, challenge_id, audio_url, result):
     # Update streak before updating other stats
     new_streak = update_streak(uid)
 
-    # Update user stats (XP, last attempt timestamp, and streak)
+    # Update time-based XP (daily, weekly, monthly) with automatic reset
+    xp_gained = result.get("xp_gained", 0)
+    update_time_based_xp(uid, xp_gained)
+
+    # Update user stats (XP total, last attempt timestamp, and streak)
     db.collection("users").document(uid).set({
-        "xp_total": firestore.Increment(result.get("xp_gained", 0)),
+        "xp_total": firestore.Increment(xp_gained),
         "last_attempt_at": now_iso(),
         "streak_days": new_streak  # Update with real streak value
     }, merge=True)
@@ -138,8 +237,8 @@ def get_leaderboard_mock(period):
 
 def get_leaderboard_real(period, limit=10):
     """
-    Real leaderboard calculation from Firestore.
-    Queries users collection and returns top users by XP.
+    Real leaderboard calculation from Firestore with time-based filtering.
+    Queries users collection and returns top users by XP for the specified period.
 
     Args:
         period: str - "daily", "weekly", "monthly", or "all-time"
@@ -148,15 +247,19 @@ def get_leaderboard_real(period, limit=10):
     Returns:
         dict - {"period": str, "top": [{"uid", "name", "xp"}, ...]}
     """
-    from datetime import datetime, timedelta, timezone
+    # Determine which XP field to query based on period
+    if period == "daily":
+        xp_field = "xp_daily"
+    elif period == "weekly":
+        xp_field = "xp_weekly"
+    elif period == "monthly":
+        xp_field = "xp_monthly"
+    else:  # "all-time" or any other value
+        xp_field = "xp_total"
 
-    # For time-based filtering, we'd need to track XP gains with timestamps
-    # For now, we'll implement all-time leaderboard
-    # Future enhancement: Add xp_daily, xp_weekly, xp_monthly fields
-
-    # Query users ordered by xp_total
+    # Query users ordered by the appropriate XP field
     users_ref = db.collection("users")
-    query = users_ref.order_by("xp_total", direction=firestore.Query.DESCENDING).limit(limit)
+    query = users_ref.order_by(xp_field, direction=firestore.Query.DESCENDING).limit(limit)
 
     top_users = []
     for doc in query.stream():
@@ -164,13 +267,12 @@ def get_leaderboard_real(period, limit=10):
         top_users.append({
             "uid": doc.id,
             "name": user_data.get("display_name", "Anonymous"),
-            "xp": int(user_data.get("xp_total", 0))
+            "xp": int(user_data.get(xp_field, 0))
         })
 
     return {
         "period": period,
-        "top": top_users,
-        "note": "Currently showing all-time leaderboard. Time-based filtering coming soon."
+        "top": top_users
     }
 
 

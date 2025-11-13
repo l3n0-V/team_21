@@ -195,12 +195,7 @@ def main():
         print("\n" + "="*60)
         print("✅ Streak calculation tests complete!")
         print("="*60)
-        print("\nNext Steps:")
-        print("1. Test consecutive days by running a challenge tomorrow")
-        print("2. Test streak reset by waiting 2+ days before next attempt")
-        print("3. Integrate streak display in mobile app UI")
-        print("4. Add streak notifications/reminders")
-        print()
+
 
     except requests.exceptions.ConnectionError:
         print("\n❌ ERROR: Could not connect to Flask server!")
