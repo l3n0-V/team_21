@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+    <title>Snop – About</title>
+  </head>
+
+  <body>
+
+    {% include 'navbar_public.html' %}
+
+    <main>
+      <h1>About Snop</h1>
+
+      <p>
+        Snop is a simple, modern and engaging Norwegian learning app designed for students,
+        newcomers, and anyone wanting to improve their Norwegian skills.
+      </p>
+
+      <p>
+        The app includes challenges, progress tracking, pronunciation tools,
+        and mini-tasks to help you build your vocabulary day by day.
+      </p>
+
+      <p>
+        Our mission is to make learning Norwegian fun, effective and consistent —
+        one “snop” at a time.
+      </p>
+    </main>
+
+    {% include 'footer.html' %}
+
+    <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
+  </body>
+</html>

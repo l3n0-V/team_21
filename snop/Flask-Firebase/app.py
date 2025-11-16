@@ -214,6 +214,14 @@ def authorize():
 def home():
     return render_template('home.html')
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 
 @app.route('/login')
 def login():
@@ -265,6 +273,17 @@ def logout():
 @auth_required
 def dashboard():
     return render_template('dashboard.html')
+
+@app.route('/profile')
+@auth_required
+def profile():
+    return render_template('profile.html')
+
+
+@app.route('/settings')
+@auth_required
+def settings():
+    return render_template('settings.html')
 
 
 @app.get("/health")

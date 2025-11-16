@@ -33,12 +33,12 @@ body {
     color: var(--dark-color);
     background-color: var(--primary-color);
     font-family: var(--primary-font);
-    height: 100vh;
+    min-height: 100vh;
 }
 
 main {
     padding: 2rem;
-    height: 100vh;
+    min-height: calc(100vh - 80px);
 }
 
 
