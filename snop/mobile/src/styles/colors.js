@@ -1,4 +1,4 @@
-d// SNOP Brand Colors - Norwegian Flag Inspired Theme
+// SNOP Brand Colors - Norwegian Flag Inspired Theme
 // Primary colors derived from Norwegian flag (red, white, blue)
 
 export const colors = {
