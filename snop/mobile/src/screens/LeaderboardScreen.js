@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl, ActivityIndicator } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { USE_MOCK, API_BASE_URL } from "../../shared/config/endpoints";
+import { colors, shadows } from "../styles/colors";
 
 export default function LeaderboardScreen() {
   const { user, token } = useAuth();
@@ -82,25 +83,30 @@ export default function LeaderboardScreen() {
     const rank = index + 1;
     const isCurrentUser = item.uid === user?.uid;
 
-    // Medal emojis for top 3
-    const getMedal = (rank) => {
-      if (rank === 1) return '🥇';
-      if (rank === 2) return '🥈';
-      if (rank === 3) return '🥉';
-      return `#${rank}`;
+    // Medal colors for top 3
+    const getMedalStyle = (rank) => {
+      if (rank === 1) return { backgroundColor: colors.gold, text: '1ST' };
+      if (rank === 2) return { backgroundColor: colors.silver, text: '2ND' };
+      if (rank === 3) return { backgroundColor: colors.bronze, text: '3RD' };
+      return { backgroundColor: colors.backgroundTertiary, text: `#${rank}` };
     };
+
+    const medalStyle = getMedalStyle(rank);
 
     return (
       <View style={[
         styles.leaderboardItem,
         isCurrentUser && styles.currentUserItem
       ]}>
-        <View style={styles.rankContainer}>
+        <View style={[
+          styles.rankContainer,
+          rank <= 3 && { backgroundColor: medalStyle.backgroundColor }
+        ]}>
           <Text style={[
             styles.rankText,
             rank <= 3 && styles.topRankText
           ]}>
-            {getMedal(rank)}
+            {medalStyle.text}
           </Text>
         </View>
 
@@ -114,7 +120,10 @@ export default function LeaderboardScreen() {
           </Text>
         </View>
 
-        <Text style={styles.xpText}>{item.xp} XP</Text>
+        <View style={styles.xpContainer}>
+          <Text style={styles.xpText}>{item.xp}</Text>
+          <Text style={styles.xpLabel}>XP</Text>
+        </View>
       </View>
     );
   };
@@ -133,7 +142,7 @@ export default function LeaderboardScreen() {
               style={({ pressed }) => [
                 styles.periodButton,
                 period === p && styles.periodButtonActive,
-                pressed && { opacity: 0.6 }
+                pressed && { opacity: 0.7 }
               ]}
             >
               <Text style={[
@@ -149,7 +158,7 @@ export default function LeaderboardScreen() {
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#111827" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading leaderboard...</Text>
         </View>
       ) : error ? (
@@ -174,7 +183,7 @@ export default function LeaderboardScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#111827"
+              tintColor={colors.primary}
             />
           }
         />
@@ -186,137 +195,159 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff'
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
     paddingTop: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb'
+    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#111827',
-    marginBottom: 12
+    color: colors.primary,
+    marginBottom: 16,
   },
   periodSelector: {
     flexDirection: 'row',
-    gap: 8
+    gap: 8,
   },
   periodButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center'
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: colors.backgroundTertiary,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   periodButtonActive: {
-    backgroundColor: '#111827'
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   periodButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6b7280'
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   periodButtonTextActive: {
-    color: '#ffffff'
+    color: colors.textWhite,
   },
   listContent: {
-    padding: 16
+    padding: 16,
   },
   leaderboardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    marginBottom: 8,
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    backgroundColor: colors.background,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb'
+    borderColor: colors.border,
+    ...shadows.small,
   },
   currentUserItem: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#3b82f6',
-    borderWidth: 2
+    backgroundColor: colors.backgroundAccent,
+    borderColor: colors.primary,
+    borderWidth: 2,
   },
   rankContainer: {
-    width: 50,
-    alignItems: 'center'
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: colors.backgroundTertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rankText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#6b7280'
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textSecondary,
   },
   topRankText: {
-    fontSize: 24
+    fontSize: 14,
+    color: colors.textWhite,
   },
   userInfo: {
     flex: 1,
-    marginLeft: 12
+    marginLeft: 14,
   },
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827'
+    color: colors.textPrimary,
   },
   currentUserName: {
-    color: '#2563eb',
-    fontWeight: '800'
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  xpContainer: {
+    alignItems: 'flex-end',
   },
   xpText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827'
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  xpLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textLight,
+    marginTop: 2,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6b7280'
+    color: colors.textSecondary,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20
+    padding: 20,
   },
   errorText: {
     fontSize: 16,
-    color: '#ef4444',
-    marginBottom: 16
+    color: colors.error,
+    marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#111827',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8
+    borderRadius: 10,
+    ...shadows.small,
   },
   retryButtonText: {
-    color: '#ffffff',
-    fontWeight: '700'
+    color: colors.textWhite,
+    fontWeight: '700',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20
+    padding: 20,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8
+    color: colors.textPrimary,
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center'
-  }
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
 });

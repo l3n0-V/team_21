@@ -4,13 +4,18 @@ import Header from "../components/Header";
 import ChallengeCard from "../components/ChallengeCard";
 import { useChallenges } from "../context/ChallengeContext";
 import { useNavigation } from "@react-navigation/native";
+import { colors } from "../styles/colors";
 
 export default function HomeScreen() {
   const { challenges } = useChallenges();
   const nav = useNavigation();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <Header />
 
       <Section
@@ -36,16 +41,17 @@ export default function HomeScreen() {
 
 function Section({ title, items, onPressSeeAll }) {
   return (
-    <View style={{ marginVertical: 12 }}>
-      <View style={styles.row}>
-        <Text style={styles.title}>{title} challenges</Text>
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title} challenges</Text>
         <Pressable
           onPress={onPressSeeAll}
           style={({ pressed }) => [
-            pressed && { opacity: 0.6 }
+            styles.seeAllButton,
+            pressed && styles.seeAllButtonPressed
           ]}
         >
-          <Text style={styles.link}>Tap to see all →</Text>
+          <Text style={styles.seeAllText}>See all</Text>
         </Pressable>
       </View>
       {items.map((c) => <ChallengeCard key={c.id} challenge={c} />)}
@@ -54,8 +60,40 @@ function Section({ title, items, onPressSeeAll }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  title: { fontSize: 20, fontWeight: "700" },
-  link: { color: "#2563eb", fontWeight: "600" }
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    backgroundColor: colors.background,
+  },
+  contentContainer: {
+    paddingBottom: 32,
+  },
+  section: {
+    marginTop: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  seeAllButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: `${colors.accent}10`,
+  },
+  seeAllButtonPressed: {
+    opacity: 0.7,
+  },
+  seeAllText: {
+    color: colors.accent,
+    fontWeight: "700",
+    fontSize: 14,
+  },
 });

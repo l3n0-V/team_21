@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
-import api from "../services/api";
+import { Platform } from "react-native";
+import { api } from "../services/api";
 
 // To do: Replace with real Firebase Authentication
 // Currently using mock user for testing audio upload and backend integration
@@ -19,6 +20,30 @@ const MOCK_TOKEN = 'mock-token-for-testing';
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
+// Helper functions for web platform (SecureStore doesn't work on web)
+const storage = {
+  async getItem(key) {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key, value) {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, value);
+      return;
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  async deleteItem(key) {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(key);
+      return;
+    }
+    return SecureStore.deleteItemAsync(key);
+  }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(MOCK_USER);  // Changed from null - using mock user for testing
   const [token, setToken] = useState(MOCK_TOKEN);  // Changed from null - using mock token for testing
@@ -26,11 +51,15 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     (async () => {
-      const t = await SecureStore.getItemAsync("token");
-      const u = await SecureStore.getItemAsync("user");
-      if (t && u) {
-        setToken(t);
-        setUser(JSON.parse(u));
+      try {
+        const t = await storage.getItem("token");
+        const u = await storage.getItem("user");
+        if (t && u) {
+          setToken(t);
+          setUser(JSON.parse(u));
+        }
+      } catch (error) {
+        console.log('Error loading stored auth:', error);
       }
       setReady(true);
     })();
@@ -38,12 +67,14 @@ export function AuthProvider({ children }) {
 
   const signIn = async (email, password) => {
     // Placeholder: call backend when ready
-    const resp = await api.auth.login({ email, password });
+    // Note: api.auth.login is not yet implemented
+    console.log('signIn called with:', email);
+    const resp = { token: MOCK_TOKEN, user: MOCK_USER }; // Mock response for now
     if (resp?.token) {
       setToken(resp.token);
       setUser(resp.user);
-      await SecureStore.setItemAsync("token", resp.token);
-      await SecureStore.setItemAsync("user", JSON.stringify(resp.user));
+      await storage.setItem("token", resp.token);
+      await storage.setItem("user", JSON.stringify(resp.user));
     }
     return resp;
   };
@@ -51,8 +82,8 @@ export function AuthProvider({ children }) {
   const signOut = async () => {
     setUser(null);
     setToken(null);
-    await SecureStore.deleteItemAsync("token");
-    await SecureStore.deleteItemAsync("user");
+    await storage.deleteItem("token");
+    await storage.deleteItem("user");
   };
 
   const value = { user, token, ready, signIn, signOut, setUser };

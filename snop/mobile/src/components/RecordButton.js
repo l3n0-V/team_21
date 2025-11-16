@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Pressable, Text, StyleSheet } from "react-native";
+import { Pressable, Text, StyleSheet, View } from "react-native";
+import { colors, shadows } from "../styles/colors";
 
 export default function RecordButton({ onStart, onStop, label = "Tap to record" }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -20,18 +21,57 @@ export default function RecordButton({ onStart, onStop, label = "Tap to record" 
       style={({ pressed }) => [
         styles.btn,
         isRecording && styles.recording,
-        pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
+        pressed && styles.pressed
       ]}
     >
-      <Text style={styles.txt}>{isRecording ? "Stop" : label}</Text>
-      <Text style={styles.mic}>{isRecording ? "⏺" : "🎙️"}</Text>
+      <View style={styles.content}>
+        <Text style={styles.txt}>{isRecording ? "Stop Recording" : label}</Text>
+        <View style={[styles.iconContainer, isRecording && styles.iconRecording]}>
+          <Text style={styles.mic}>{isRecording ? "STOP" : "REC"}</Text>
+        </View>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  btn: { backgroundColor: "#111827", paddingVertical: 18, borderRadius: 999, alignItems: "center" },
-  recording: { backgroundColor: "#dc2626" },
-  txt: { color: "white", fontWeight: "800", fontSize: 16 },
-  mic: { color: "white", fontSize: 22, marginTop: 4 }
+  btn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    alignItems: "center",
+    ...shadows.large,
+  },
+  recording: {
+    backgroundColor: colors.accent,
+  },
+  pressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  content: {
+    alignItems: "center",
+  },
+  txt: {
+    color: colors.textWhite,
+    fontWeight: "800",
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  iconContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  iconRecording: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  mic: {
+    color: colors.textWhite,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
 });

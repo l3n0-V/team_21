@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { colors, shadows, getDifficultyColor, getFrequencyColor } from "../styles/colors";
 
 export default function ChallengeCard({ challenge }) {
   const nav = useNavigation();
@@ -17,6 +18,9 @@ export default function ChallengeCard({ challenge }) {
       nav.navigate(screen, { challenge });
     }
   };
+
+  const difficultyColor = getDifficultyColor(challenge.difficulty);
+  const frequencyColor = getFrequencyColor(challenge.frequency);
 
   return (
     <Pressable
@@ -53,23 +57,93 @@ export default function ChallengeCard({ challenge }) {
       )}
 
       <View style={styles.meta}>
-        <Text style={styles.badge}>{challenge.frequency}</Text>
-        <Text style={styles.badge}>{challenge.difficulty}</Text>
+        <View style={[styles.badge, { backgroundColor: `${frequencyColor}20` }]}>
+          <Text style={[styles.badgeText, { color: frequencyColor }]}>
+            {challenge.frequency}
+          </Text>
+        </View>
+        <View style={[styles.badge, { backgroundColor: `${difficultyColor}20` }]}>
+          <Text style={[styles.badgeText, { color: difficultyColor }]}>
+            {challenge.difficulty}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: "#ffffff", padding: 14, borderRadius: 14, marginTop: 8, borderWidth: 1, borderColor: "#e5e7eb" },
-  cardPressed: { opacity: 0.7, transform: [{ scale: 0.98 }] },
-  titleNorwegian: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  titleHelper: { fontSize: 13, color: "#6b7280", fontStyle: "italic", marginTop: 2 },
-  descNorwegian: { marginTop: 8, fontSize: 15, color: "#374151", fontWeight: "500", lineHeight: 22 },
-  descHelper: { marginTop: 4, fontSize: 12, color: "#9ca3af", fontStyle: "italic" },
-  targetPreview: { marginTop: 10, backgroundColor: "#f0f9ff", padding: 10, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: "#2563eb" },
-  targetLabel: { fontSize: 12, color: "#2563eb", fontWeight: "600", marginBottom: 4 },
-  targetText: { fontSize: 14, color: "#1e40af", fontWeight: "600" },
-  meta: { marginTop: 10, flexDirection: "row", gap: 8 },
-  badge: { backgroundColor: "#f3f4f6", paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, overflow: "hidden", fontSize: 12, color: "#4b5563" }
+  card: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 14,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.medium,
+  },
+  cardPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  titleNorwegian: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  titleHelper: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  descNorwegian: {
+    marginTop: 10,
+    fontSize: 15,
+    color: colors.textPrimary,
+    fontWeight: "500",
+    lineHeight: 22,
+  },
+  descHelper: {
+    marginTop: 4,
+    fontSize: 12,
+    color: colors.textLight,
+    fontStyle: "italic",
+  },
+  targetPreview: {
+    marginTop: 12,
+    backgroundColor: colors.backgroundAccent,
+    padding: 12,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.accent,
+  },
+  targetLabel: {
+    fontSize: 12,
+    color: colors.accent,
+    fontWeight: "700",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  targetText: {
+    fontSize: 15,
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  meta: {
+    marginTop: 12,
+    flexDirection: "row",
+    gap: 8,
+  },
+  badge: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
 });

@@ -8,6 +8,7 @@ import RecordButton from "../components/RecordButton";
 import { api } from "../services/api";
 import { speak } from "../services/ttsService";
 import { uploadAudioFile } from "../services/audioService";
+import { colors, shadows } from "../styles/colors";
 
 export default function WeeklyScreen({ route }) {
   const { challenges } = useChallenges();
@@ -59,9 +60,9 @@ export default function WeeklyScreen({ route }) {
       // Show platform-specific warning for web testing
       if (Platform.OS === 'web') {
         console.warn('');
-        console.warn('⚠️  WEB TESTING MODE ACTIVE');
-        console.warn('⚠️  Backend will receive local file URL and cannot process actual audio');
-        console.warn('⚠️  You will see mock/error responses from backend');
+        console.warn('WEB TESTING MODE ACTIVE');
+        console.warn('Backend will receive local file URL and cannot process actual audio');
+        console.warn('You will see mock/error responses from backend');
         console.warn('');
       }
 
@@ -116,7 +117,7 @@ export default function WeeklyScreen({ route }) {
       {/* Target phrase section - Norwegian prominent */}
       {weekly?.target && (
         <View style={styles.targetSection}>
-          <Text style={styles.targetLabel}>Si på norsk:</Text>
+          <Text style={styles.targetLabel}>SI PÅ NORSK:</Text>
           <Text style={styles.targetPhrase}>"{weekly?.target}"</Text>
           <Text style={styles.targetTranslation}>({weekly?.prompt})</Text>
         </View>
@@ -128,10 +129,11 @@ export default function WeeklyScreen({ route }) {
           <Pressable
             onPress={() => speak(weekly?.target)}
             style={({ pressed }) => [
-              pressed && { opacity: 0.6 }
+              styles.playTargetButton,
+              pressed && { opacity: 0.7 }
             ]}
           >
-            <Text style={styles.link}>Spill av målfrasen (Play target phrase)</Text>
+            <Text style={styles.playTargetText}>Spill av målfrasen (Play target phrase)</Text>
           </Pressable>
         </>
       )}
@@ -145,12 +147,15 @@ export default function WeeklyScreen({ route }) {
           disabled={!lastUri || loading}
           onPress={playLast}
           style={({ pressed }) => [
-            styles.btn,
+            styles.btnSecondary,
             (!lastUri || loading) && styles.btnDisabled,
-            pressed && !loading && lastUri && { opacity: 0.6, transform: [{ scale: 0.98 }] }
+            pressed && !loading && lastUri && styles.btnPressed
           ]}
         >
-          <Text style={styles.btnText}>
+          <Text style={[
+            styles.btnSecondaryText,
+            (!lastUri || loading) && styles.btnDisabledText
+          ]}>
             Spill av (Play)
           </Text>
         </Pressable>
@@ -158,12 +163,15 @@ export default function WeeklyScreen({ route }) {
           disabled={!lastUri || loading}
           onPress={handleScore}
           style={({ pressed }) => [
-            styles.btn,
+            styles.btnPrimary,
             (!lastUri || loading) && styles.btnDisabled,
-            pressed && !loading && lastUri && { opacity: 0.6, transform: [{ scale: 0.98 }] }
+            pressed && !loading && lastUri && styles.btnPressed
           ]}
         >
-          <Text style={styles.btnText}>
+          <Text style={[
+            styles.btnPrimaryText,
+            (!lastUri || loading) && styles.btnDisabledText
+          ]}>
             {loading ? "Sender inn..." : "Last opp (Upload)"}
           </Text>
         </Pressable>
@@ -171,14 +179,20 @@ export default function WeeklyScreen({ route }) {
 
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Analyserer uttalen din...</Text>
         </View>
       )}
 
       {result && !loading && (
-        <View style={styles.card}>
-          <Text style={styles.resultTitle}>
+        <View style={[
+          styles.card,
+          result.pass ? styles.cardSuccess : styles.cardWarning
+        ]}>
+          <Text style={[
+            styles.resultTitle,
+            result.pass ? styles.resultTitleSuccess : styles.resultTitleWarning
+          ]}>
             {result.pass ? "Bestått! (Passed!)" : "Fortsett å øve (Keep Practicing)"}
           </Text>
           <Text style={styles.feedback}>{result.feedback}</Text>
@@ -195,77 +209,165 @@ export default function WeeklyScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: { fontSize: 24, fontWeight: "800", color: "#111827" },
-  headerHelper: { fontSize: 14, color: "#6b7280", fontStyle: "italic", marginTop: 2 },
-  descriptionNorwegian: { fontSize: 16, color: "#374151", marginTop: 12, fontWeight: "500", lineHeight: 24 },
-  descriptionHelper: { fontSize: 13, color: "#9ca3af", fontStyle: "italic", marginTop: 4 },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: colors.background,
+  },
+  header: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  headerHelper: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  descriptionNorwegian: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginTop: 12,
+    fontWeight: "500",
+    lineHeight: 24,
+  },
+  descriptionHelper: {
+    fontSize: 13,
+    color: colors.textLight,
+    fontStyle: "italic",
+    marginTop: 4,
+  },
   targetSection: {
     marginTop: 20,
-    backgroundColor: "#f0f9ff",
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#2563eb"
+    backgroundColor: colors.backgroundAccent,
+    padding: 18,
+    borderRadius: 14,
+    borderLeftWidth: 5,
+    borderLeftColor: colors.accent,
+    ...shadows.small,
   },
-  targetLabel: { fontSize: 14, color: "#2563eb", fontWeight: "700", marginBottom: 8 },
-  targetPhrase: { fontSize: 22, color: "#1e40af", fontWeight: "700", lineHeight: 30 },
-  targetTranslation: { fontSize: 14, color: "#6b7280", fontStyle: "italic", marginTop: 8 },
-  link: { color: "#2563eb", fontWeight: "600", marginTop: 4 },
-  row: { flexDirection: "row", gap: 12, marginTop: 12 },
-  btn: {
-    padding: 12,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 10,
-    flex: 1,
-    alignItems: "center"
+  targetLabel: {
+    fontSize: 13,
+    color: colors.accent,
+    fontWeight: "800",
+    marginBottom: 10,
+    letterSpacing: 0.5,
   },
-  btnText: {
+  targetPhrase: {
+    fontSize: 24,
+    color: colors.accent,
+    fontWeight: "700",
+    lineHeight: 32,
+  },
+  targetTranslation: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+    marginTop: 10,
+  },
+  playTargetButton: {
+    paddingVertical: 8,
+  },
+  playTargetText: {
+    color: colors.accent,
     fontWeight: "600",
-    color: "#111827"
+    fontSize: 15,
+  },
+  row: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  btnPrimary: {
+    padding: 14,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    flex: 1,
+    alignItems: "center",
+    ...shadows.small,
+  },
+  btnPrimaryText: {
+    fontWeight: "700",
+    color: colors.textWhite,
+    fontSize: 15,
+  },
+  btnSecondary: {
+    padding: 14,
+    backgroundColor: colors.backgroundTertiary,
+    borderRadius: 12,
+    flex: 1,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  btnSecondaryText: {
+    fontWeight: "600",
+    color: colors.textPrimary,
+    fontSize: 15,
   },
   btnDisabled: {
-    backgroundColor: "#f3f4f6"
+    backgroundColor: colors.disabledBackground,
+    borderColor: colors.border,
+  },
+  btnDisabledText: {
+    color: colors.disabled,
+  },
+  btnPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
   },
   loadingContainer: {
     marginTop: 24,
     alignItems: "center",
-    gap: 8
+    gap: 8,
   },
   loadingText: {
     fontSize: 14,
-    color: "#6b7280",
-    marginTop: 8
+    color: colors.textSecondary,
+    marginTop: 8,
   },
   card: {
     marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: "#f3f4f6",
-    borderWidth: 1,
-    borderColor: "#e5e7eb"
+    padding: 18,
+    borderRadius: 14,
+    borderWidth: 2,
+    ...shadows.medium,
+  },
+  cardSuccess: {
+    backgroundColor: colors.successLight,
+    borderColor: colors.success,
+  },
+  cardWarning: {
+    backgroundColor: colors.warningLight,
+    borderColor: colors.warning,
   },
   resultTitle: {
     fontWeight: "700",
     fontSize: 18,
-    marginBottom: 8,
-    color: "#111827"
+    marginBottom: 10,
+  },
+  resultTitleSuccess: {
+    color: colors.success,
+  },
+  resultTitleWarning: {
+    color: colors.warning,
   },
   feedback: {
     fontSize: 15,
-    color: "#374151",
+    color: colors.textPrimary,
     marginBottom: 8,
-    lineHeight: 22
+    lineHeight: 22,
   },
   score: {
     fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 4
+    color: colors.textSecondary,
+    marginBottom: 4,
   },
   xp: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#2563eb",
-    marginTop: 8
-  }
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.success,
+    marginTop: 10,
+  },
 });

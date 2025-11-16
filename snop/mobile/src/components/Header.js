@@ -1,23 +1,26 @@
 import React from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useUserStats } from "../context/UserStatsContext";
+import { colors, shadows } from "../styles/colors";
 
 export default function Header() {
   const { stats, loading, error } = useUserStats();
 
   return (
     <View style={styles.card}>
-      <View style={{ flex: 1 }}>
+      <View style={styles.contentContainer}>
         <Text style={styles.name}>Welcome to SNOP</Text>
         <Text style={styles.sub}>Earn snops by completing challenges</Text>
         {stats.streak_days > 0 && (
-          <Text style={styles.streak}>🔥 {stats.streak_days}-day streak!</Text>
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>{stats.streak_days}-day streak!</Text>
+          </View>
         )}
       </View>
 
       <View style={styles.pill}>
         {loading ? (
-          <ActivityIndicator size="small" color="white" />
+          <ActivityIndicator size="small" color={colors.textWhite} />
         ) : error ? (
           <Text style={styles.snopsText}>SNOPS: --</Text>
         ) : (
@@ -31,32 +34,53 @@ export default function Header() {
 const styles = StyleSheet.create({
   card: {
     marginTop: 8,
-    padding: 16,
+    padding: 20,
     borderRadius: 16,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: colors.primary,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12
+    gap: 12,
+    ...shadows.large,
   },
-  name: { fontWeight: "800", fontSize: 18 },
-  sub: { color: "#4b5563", marginTop: 2 },
-  streak: {
-    color: "#ea580c",
-    fontWeight: "700",
+  contentContainer: {
+    flex: 1,
+  },
+  name: {
+    fontWeight: "800",
+    fontSize: 20,
+    color: colors.textWhite,
+  },
+  sub: {
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 4,
     fontSize: 14,
-    marginTop: 4
+  },
+  streakBadge: {
+    backgroundColor: colors.warning,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginTop: 8,
+    alignSelf: "flex-start",
+  },
+  streakText: {
+    color: colors.textWhite,
+    fontWeight: "700",
+    fontSize: 13,
   },
   pill: {
-    backgroundColor: "#111827",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: colors.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 12,
-    minWidth: 100,
+    minWidth: 110,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    ...shadows.medium,
   },
   snopsText: {
-    color: "white",
-    fontWeight: "800"
-  }
+    color: colors.textWhite,
+    fontWeight: "800",
+    fontSize: 14,
+  },
 });
