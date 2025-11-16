@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: `${colors.accent}10`,
+    backgroundColor: 'rgba(239, 43, 45, 0.1)',
   },
   seeAllButtonPressed: {
     opacity: 0.7,

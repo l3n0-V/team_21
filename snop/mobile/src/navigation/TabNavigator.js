@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   iconContainerActive: {
-    backgroundColor: `${colors.primary}15`,
+    backgroundColor: 'rgba(0, 40, 104, 0.15)',
   },
   icon: {
     fontSize: 11,
