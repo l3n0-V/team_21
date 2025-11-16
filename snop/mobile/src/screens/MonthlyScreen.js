@@ -137,7 +137,7 @@ export default function MonthlyScreen({ route }) {
       )}
 
       <View style={{ flex: 1 }} />
-      <RecordButton onStart={begin} onStop={end} label="Trykk for a ta opp (Tap to record)" />
+      <RecordButton onStart={begin} onStop={end} label="Trykk for å ta opp (Tap to record)" />
 
       <View style={{ height: 12 }} />
       <View style={styles.row}>
@@ -179,7 +179,7 @@ export default function MonthlyScreen({ route }) {
       {result && !loading && (
         <View style={styles.card}>
           <Text style={styles.resultTitle}>
-            {result.pass ? "Bestatt! (Passed!)" : "Fortsett a ove (Keep Practicing)"}
+            {result.pass ? "Bestått! (Passed!)" : "Fortsett å øve (Keep Practicing)"}
           </Text>
           <Text style={styles.feedback}>{result.feedback}</Text>
           {result.pronunciation_score && (

@@ -173,7 +173,7 @@ export default function DailyScreen({ route }) {
       {result && !loading && (
         <View style={styles.card}>
           <Text style={styles.resultTitle}>
-            {result.pass ? "Bestatt! (Passed!)" : "Fortsett a ove (Keep Practicing)"}
+            {result.pass ? "Bestått! (Passed!)" : "Fortsett å øve (Keep Practicing)"}
           </Text>
           <Text style={styles.feedback}>{result.feedback}</Text>
           {result.pronunciation_score && (
