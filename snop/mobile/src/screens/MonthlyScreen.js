@@ -131,7 +131,7 @@ export default function MonthlyScreen({ route }) {
               pressed && { opacity: 0.6 }
             ]}
           >
-            <Text style={styles.link}>Spill av malfrasen (Play target phrase)</Text>
+            <Text style={styles.link}>Spill av målfrasen (Play target phrase)</Text>
           </Pressable>
         </>
       )}

@@ -47,7 +47,7 @@ export default function ChallengeCard({ challenge }) {
       {/* Target phrase preview */}
       {challenge.target && (
         <View style={styles.targetPreview}>
-          <Text style={styles.targetLabel}>Si pa norsk:</Text>
+          <Text style={styles.targetLabel}>Si på norsk:</Text>
           <Text style={styles.targetText} numberOfLines={1}>"{challenge.target}"</Text>
         </View>
       )}
