@@ -144,6 +144,14 @@ function resetPassword() {
 
 
 /* === UI helpers === */
+async function addNewUserToFirestore(user) {
+  // This function would typically add user data to Firestore
+  // For now, we'll rely on the backend /auth/register endpoint
+  // or let Firebase handle user creation automatically
+  console.log("New user created:", user.uid);
+  return Promise.resolve();
+}
+
 function loginUser(user, idToken) {
   fetch("/auth", {
     method: "POST",
@@ -155,10 +163,26 @@ function loginUser(user, idToken) {
     body: JSON.stringify({ uid: user.uid, email: user.email }), // 🧠 CHANGE: added JSON body to make request clearer
   })
     .then((res) => {
-      if (res.ok) window.location.href = "/dashboard";
-      else console.error("Failed to login");
+      if (res.ok || res.status === 200) {
+        return res.json();
+      } else {
+        console.error("Failed to login, status:", res.status);
+        throw new Error(`Login failed with status ${res.status}`);
+      }
     })
-    .catch((err) => console.error("Fetch error:", err));
+    .then((data) => {
+      if (data.success || data.redirect) {
+        window.location.href = data.redirect || "/dashboard";
+      } else {
+        console.error("Unexpected response:", data);
+      }
+    })
+    .catch((err) => {
+      console.error("Fetch error:", err);
+      if (errorMsgGoogleSignIn) {
+        errorMsgGoogleSignIn.textContent = "Authentication failed. Please try again.";
+      }
+    });
 }
 
 

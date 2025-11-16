@@ -101,16 +101,23 @@ export default function DailyScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Daily: {daily?.title}</Text>
-      <Text style={styles.sub}>Say: "{daily?.target}"</Text>
+
+      {/* English instruction (smaller) */}
+      <Text style={styles.subSmall}>Say: "{daily?.target}"</Text>
+
+      {/* Norwegian phrase (main) */}
+      {daily?.target_no && (
+        <Text style={styles.norwegianText}>Si: "{daily?.target_no}"</Text>
+      )}
 
       <View style={{ height: 16 }} />
       <Pressable
-        onPress={() => speak(daily?.target)}
+        onPress={() => speak(daily?.target_no || daily?.target)}
         style={({ pressed }) => [
           pressed && { opacity: 0.6 }
         ]}
       >
-        <Text style={styles.link}>🔊 Play target phrase</Text>
+        <Text style={styles.link}>🔊 Spill av målfrasen (Play target phrase)</Text>
       </Pressable>
 
       <View style={{ flex: 1 }} />
@@ -175,6 +182,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   header: { fontSize: 22, fontWeight: "800" },
   sub: { fontSize: 16, color: "#374151", marginTop: 4 },
+  subSmall: { fontSize: 13, color: "#6b7280", marginTop: 4, fontStyle: "italic" },
+  norwegianText: { fontSize: 20, color: "#111827", marginTop: 8, fontWeight: "600" },
   link: { color: "#2563eb", fontWeight: "600" },
   row: { flexDirection: "row", gap: 12, marginTop: 12 },
   btn: {

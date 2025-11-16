@@ -101,25 +101,31 @@ export default function WeeklyScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Weekly: {weekly?.title}</Text>
-      <Text style={styles.sub}>Real-life task: {weekly?.description}</Text>
+
+      {/* English description (smaller) */}
+      <Text style={styles.subSmall}>Real-life task: {weekly?.description}</Text>
+
+      {/* Norwegian task description (main) */}
+      {weekly?.target_no && (
+        <Text style={styles.norwegianText}>Oppgave: {weekly?.target_no}</Text>
+      )}
 
       {weekly?.target && (
         <>
           <View style={{ height: 16 }} />
-          <Text style={styles.target}>Target phrase: "{weekly.target}"</Text>
           <Pressable
-            onPress={() => speak(weekly?.target)}
+            onPress={() => speak(weekly?.target_no || weekly?.target)}
             style={({ pressed }) => [
               pressed && { opacity: 0.6 }
             ]}
           >
-            <Text style={styles.link}>🔊 Play target phrase</Text>
+            <Text style={styles.link}>🔊 Spill av målfrasen (Play target phrase)</Text>
           </Pressable>
         </>
       )}
 
       <View style={{ flex: 1 }} />
-      <RecordButton onStart={begin} onStop={end} label="Tap to record a sample" />
+      <RecordButton onStart={begin} onStop={end} label="Trykk for å ta opp (Tap to record)" />
 
       <View style={{ height: 12 }} />
       <View style={styles.row}>
@@ -180,6 +186,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   header: { fontSize: 22, fontWeight: "800" },
   sub: { fontSize: 16, color: "#374151", marginTop: 6 },
+  subSmall: { fontSize: 13, color: "#6b7280", marginTop: 4, fontStyle: "italic" },
+  norwegianText: { fontSize: 18, color: "#111827", marginTop: 8, fontWeight: "600", lineHeight: 26 },
   target: { fontSize: 15, color: "#111827", marginTop: 8, fontWeight: "600" },
   link: { color: "#2563eb", fontWeight: "600", marginTop: 4 },
   row: { flexDirection: "row", gap: 12, marginTop: 12 },

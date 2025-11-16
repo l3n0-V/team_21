@@ -6,29 +6,146 @@ from firebase_admin import credentials, firestore, auth
 from datetime import timedelta
 from datetime import datetime
 import os
+import logging
 from dotenv import load_dotenv
 from flask import jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from config import get_config
 
 load_dotenv()
 
+# Initialize Flask app with configuration
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
+app.config.from_object(get_config())
 
-cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
-CORS(app, resources={r"/*": {"origins": cors_origins or "*"}})
+# Set up CORS
+CORS(app, resources={r"/*": {"origins": app.config['CORS_ORIGINS'] or "*"}})
 
-# Configure session cookie settings
-app.config['SESSION_COOKIE_SECURE'] = True  # Ensure cookies are sent over HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to cookies
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # Adjust session expiration as needed
-app.config['SESSION_REFRESH_EACH_REQUEST'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Can be 'Strict', 'Lax', or 'None'
+# Set up rate limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window"
+)
+logger_limiter = logging.getLogger('flask_limiter')
+logger_limiter.setLevel(logging.WARNING)
+
+# Set up logging
+logging.basicConfig(
+    level=getattr(logging, app.config['LOG_LEVEL']),
+    format=app.config['LOG_FORMAT']
+)
+logger = logging.getLogger(__name__)
+
+# Log startup configuration
+logger.info(f"Starting SNOP Backend in {os.getenv('FLASK_ENV', 'development')} mode")
+logger.info(f"Debug mode: {app.config['DEBUG']}")
+logger.info(f"Mock pronunciation: {app.config['USE_MOCK_PRONUNCIATION']}")
+logger.info(f"Mock leaderboard: {app.config['USE_MOCK_LEADERBOARD']}")
 
 # Firebase Admin SDK setup
-cred = credentials.Certificate("firebase-auth.json")
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+try:
+    cred = credentials.Certificate(app.config['FIREBASE_CREDENTIALS_PATH'])
+    firebase_admin.initialize_app(cred)
+    db = firestore.client()
+    logger.info("Firebase initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize Firebase: {e}")
+    raise
+
+########################################
+""" Custom Error Classes """
+
+class APIError(Exception):
+    """Base exception for API errors."""
+    status_code = 500
+
+    def __init__(self, message, status_code=None, payload=None):
+        super().__init__()
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['error'] = self.message
+        return rv
+
+
+class ValidationError(APIError):
+    """Exception for validation errors."""
+    status_code = 400
+
+
+class NotFoundError(APIError):
+    """Exception for resource not found errors."""
+    status_code = 404
+
+
+class AuthenticationError(APIError):
+    """Exception for authentication errors."""
+    status_code = 401
+
+
+class PronunciationEvaluationError(APIError):
+    """Exception for pronunciation evaluation errors."""
+    status_code = 500
+
+    def __init__(self, message, suggestion=None):
+        super().__init__(message)
+        self.suggestion = suggestion
+
+    def to_dict(self):
+        rv = super().to_dict()
+        if self.suggestion:
+            rv['suggestion'] = self.suggestion
+        return rv
+
+
+# Error handlers
+@app.errorhandler(APIError)
+def handle_api_error(error):
+    """Handle custom API errors."""
+    logger.warning(f"API Error: {error.message} (Status: {error.status_code})")
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
+@app.errorhandler(ValidationError)
+def handle_validation_error(error):
+    """Handle validation errors."""
+    logger.warning(f"Validation Error: {error.message}")
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    """Handle 404 errors."""
+    logger.warning(f"404 Not Found: {request.url}")
+    return jsonify({"error": "Resource not found"}), 404
+
+
+@app.errorhandler(500)
+def handle_internal_error(error):
+    """Handle 500 errors."""
+    logger.error(f"Internal Server Error: {error}", exc_info=True)
+    return jsonify({"error": "Internal server error", "message": str(error)}), 500
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    """Handle unexpected errors."""
+    logger.error(f"Unexpected error: {error}", exc_info=True)
+    return jsonify({"error": "An unexpected error occurred", "message": str(error)}), 500
+
 
 ########################################
 """ Authentication and Authorization """
@@ -50,19 +167,43 @@ def auth_required(f):
 
 @app.route('/auth', methods=['POST'])
 def authorize():
+    """Authenticate user with Firebase ID token and create session."""
     token = request.headers.get('Authorization')
+
     if not token or not token.startswith('Bearer '):
-        return "Unauthorized", 401
+        logger.warning("Missing or invalid Authorization header")
+        return jsonify({"error": "Missing or invalid Authorization header"}), 401
 
     token = token[7:]  # Strip off 'Bearer ' to get the actual token
 
     try:
-        decoded_token = auth.verify_id_token(token, check_revoked=True, clock_skew_seconds=60)  # Validate token here
-        session['user'] = decoded_token  # Add user to session
+        decoded_token = auth.verify_id_token(token, check_revoked=True, clock_skew_seconds=60)
+        session['user'] = decoded_token
+
+        logger.info(f"User authenticated: {decoded_token.get('uid')}")
+
+        # If it's an AJAX request, return JSON
+        if request.headers.get('Content-Type') == 'application/json':
+            return jsonify({"success": True, "redirect": url_for('dashboard')}), 200
+
+        # Otherwise redirect
         return redirect(url_for('dashboard'))
 
-    except:
-        return "Unauthorized", 401
+    except auth.InvalidIdTokenError as e:
+        logger.error(f"Invalid ID token: {e}")
+        return jsonify({"error": "Invalid or expired token"}), 401
+    except auth.ExpiredIdTokenError as e:
+        logger.error(f"Expired ID token: {e}")
+        return jsonify({"error": "Token has expired"}), 401
+    except auth.RevokedIdTokenError as e:
+        logger.error(f"Revoked ID token: {e}")
+        return jsonify({"error": "Token has been revoked"}), 401
+    except auth.CertificateFetchError as e:
+        logger.error(f"Certificate fetch error: {e}")
+        return jsonify({"error": "Authentication service unavailable"}), 503
+    except Exception as e:
+        logger.error(f"Unexpected error during authentication: {e}", exc_info=True)
+        return jsonify({"error": "Authentication failed", "details": str(e)}), 500
 
 
 #####################
@@ -146,6 +287,7 @@ from services_users import register_user, get_user_profile, update_user_profile,
 from services_badges import check_and_award_badges, get_user_badges, get_all_badges, BADGES
 
 @app.post("/scoreDaily")
+@limiter.limit("20 per hour")
 @require_auth
 def score_daily():
     uid = request.user["uid"]
@@ -305,6 +447,7 @@ def rotation_status():
 
 # User Profile Management Endpoints
 @app.post("/auth/register")
+@limiter.limit("5 per hour")
 def auth_register():
     """Register a new user with email and password."""
     body = request.get_json(force=True)
