@@ -6,6 +6,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   sendPasswordResetEmail,
   onAuthStateChanged, // added this from original code
 } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
@@ -43,18 +45,43 @@ forgotPasswordButtonEl?.addEventListener("click", resetPassword);
 
 /* === Main Code === */
 
-// Functions below are unchanged except for minor improvements (comments explain where)
+// Handle redirect result on page load (for mobile auth)
+getRedirectResult(auth)
+  .then(async (result) => {
+    if (result?.user) {
+      console.log("Mobile redirect auth successful");
+      const idToken = await result.user.getIdToken();
+      loginUser(result.user, idToken);
+    }
+  })
+  .catch((error) => {
+    console.error("Redirect result error:", error);
+    if (errorMsgGoogleSignIn) {
+      errorMsgGoogleSignIn.textContent = error.message || "Authentication failed.";
+    }
+  });
+
+// Mobile detection helper
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+}
 
 async function authSignInWithGoogle() {
   provider.setCustomParameters({ prompt: "select_account" });
 
   try {
-    const result = await signInWithPopup(auth, provider);
-    if (!result?.user?.email) throw new Error("No email returned from Google."); //  Change: safer null check
-    const idToken = await result.user.getIdToken();
-    loginUser(result.user, idToken);
+    // Use redirect for mobile, popup for desktop
+    if (isMobileDevice()) {
+      await signInWithRedirect(auth, provider);
+      // Note: execution stops here on mobile, page will redirect
+    } else {
+      const result = await signInWithPopup(auth, provider);
+      if (!result?.user?.email) throw new Error("No email returned from Google.");
+      const idToken = await result.user.getIdToken();
+      loginUser(result.user, idToken);
+    }
   } catch (error) {
-    // Change: Added UI-friendly error message option
     console.error("Error during sign-in with Google", error);
     if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = error.message || "Google sign-in failed.";
   }
@@ -65,9 +92,15 @@ async function authSignUpWithGoogle() {
   provider.setCustomParameters({ prompt: "select_account" });
 
   try {
-    const result = await signInWithPopup(auth, provider);
-    const idToken = await result.user.getIdToken();
-    loginUser(result.user, idToken);
+    // Use redirect for mobile, popup for desktop
+    if (isMobileDevice()) {
+      await signInWithRedirect(auth, provider);
+      // Note: execution stops here on mobile, page will redirect
+    } else {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      loginUser(result.user, idToken);
+    }
   } catch (error) {
     console.error("Error during Google signup:", error.message);
   }
