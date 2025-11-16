@@ -9,9 +9,10 @@ import { api } from "../services/api";
 import { speak } from "../services/ttsService";
 import { uploadAudioFile } from "../services/audioService";
 
-export default function DailyScreen() {
+export default function DailyScreen({ route }) {
   const { challenges } = useChallenges();
-  const daily = challenges.daily[0];
+  // Use passed challenge or default to first challenge
+  const daily = route?.params?.challenge || challenges.daily[0];
   const { begin, end, lastUri, playLast } = useAudio();
   const { token, user } = useAuth();
   const { refreshStats } = useUserStats();

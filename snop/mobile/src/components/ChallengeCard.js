@@ -1,9 +1,31 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function ChallengeCard({ challenge }) {
+  const nav = useNavigation();
+
+  const handlePress = () => {
+    // Navigate based on challenge frequency
+    const screenMap = {
+      daily: 'Daily',
+      weekly: 'Weekly',
+      monthly: 'Monthly'
+    };
+    const screen = screenMap[challenge.frequency];
+    if (screen) {
+      nav.navigate(screen, { challenge });
+    }
+  };
+
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.cardPressed
+      ]}
+    >
       <Text style={styles.title}>{challenge.title}</Text>
 
       {/* English description (smaller) */}
@@ -20,12 +42,13 @@ export default function ChallengeCard({ challenge }) {
         <Text style={styles.badge}>{challenge.frequency}</Text>
         <Text style={styles.badge}>★ {challenge.difficulty}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: { backgroundColor: "#ffffff", padding: 14, borderRadius: 14, marginTop: 8, borderWidth: 1, borderColor: "#e5e7eb" },
+  cardPressed: { opacity: 0.7, transform: [{ scale: 0.98 }] },
   title: { fontSize: 16, fontWeight: "700" },
   descSmall: { marginTop: 4, fontSize: 13, color: "#6b7280", fontStyle: "italic" },
   norwegianText: { fontSize: 15, color: "#111827", marginTop: 6, fontWeight: "600", lineHeight: 22 },

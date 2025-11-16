@@ -345,6 +345,130 @@ def score_daily():
             "details": str(e)
         }), 500
 
+@app.post("/scoreWeekly")
+@require_auth
+def score_weekly():
+    """Score a weekly pronunciation challenge with 1.5x XP multiplier."""
+    uid = request.user["uid"]
+    body = request.get_json(force=True)
+
+    # Validate required fields
+    challenge_id = body.get("challenge_id")
+    audio_url = body.get("audio_url")
+
+    if not challenge_id:
+        return jsonify({"error": "challenge_id is required"}), 400
+    if not audio_url:
+        return jsonify({"error": "audio_url is required"}), 400
+
+    # Get the challenge to know the target phrase
+    challenge = get_challenge_by_id(challenge_id)
+    if not challenge:
+        return jsonify({"error": "Challenge not found"}), 404
+
+    # Check if it's a challenge with a target phrase
+    target_phrase = challenge.get("target")
+    if not target_phrase:
+        return jsonify({"error": "This challenge doesn't have a target phrase for pronunciation"}), 400
+
+    difficulty = challenge.get("difficulty", 1)
+
+    # Check if we should use mock or real evaluation
+    use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
+
+    try:
+        if use_mock:
+            # Use mock evaluation for testing
+            result = mock_evaluate_pronunciation(target_phrase, difficulty)
+        else:
+            # Use real Whisper API evaluation
+            result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
+
+        # Apply 1.5x XP multiplier for weekly challenges
+        result["xp_gained"] = int(result["xp_gained"] * 1.5)
+
+        # Store the attempt in Firestore
+        add_attempt(uid, challenge_id, audio_url, result)
+
+        # Check and award badges
+        new_badges = check_and_award_badges(uid, result)
+
+        # Include new badges in response if any were earned
+        if new_badges:
+            result["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        # Log the error and return a generic error response
+        print(f"Error in score_weekly: {e}")
+        return jsonify({
+            "error": "Failed to evaluate pronunciation",
+            "details": str(e)
+        }), 500
+
+@app.post("/scoreMonthly")
+@require_auth
+def score_monthly():
+    """Score a monthly pronunciation challenge with 2x XP multiplier."""
+    uid = request.user["uid"]
+    body = request.get_json(force=True)
+
+    # Validate required fields
+    challenge_id = body.get("challenge_id")
+    audio_url = body.get("audio_url")
+
+    if not challenge_id:
+        return jsonify({"error": "challenge_id is required"}), 400
+    if not audio_url:
+        return jsonify({"error": "audio_url is required"}), 400
+
+    # Get the challenge to know the target phrase
+    challenge = get_challenge_by_id(challenge_id)
+    if not challenge:
+        return jsonify({"error": "Challenge not found"}), 404
+
+    # Check if it's a challenge with a target phrase
+    target_phrase = challenge.get("target")
+    if not target_phrase:
+        return jsonify({"error": "This challenge doesn't have a target phrase for pronunciation"}), 400
+
+    difficulty = challenge.get("difficulty", 1)
+
+    # Check if we should use mock or real evaluation
+    use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
+
+    try:
+        if use_mock:
+            # Use mock evaluation for testing
+            result = mock_evaluate_pronunciation(target_phrase, difficulty)
+        else:
+            # Use real Whisper API evaluation
+            result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
+
+        # Apply 2x XP multiplier for monthly challenges
+        result["xp_gained"] = int(result["xp_gained"] * 2.0)
+
+        # Store the attempt in Firestore
+        add_attempt(uid, challenge_id, audio_url, result)
+
+        # Check and award badges
+        new_badges = check_and_award_badges(uid, result)
+
+        # Include new badges in response if any were earned
+        if new_badges:
+            result["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        # Log the error and return a generic error response
+        print(f"Error in score_monthly: {e}")
+        return jsonify({
+            "error": "Failed to evaluate pronunciation",
+            "details": str(e)
+        }), 500
+
 @app.post("/verifyWeekly")
 @require_auth
 def verify_weekly():

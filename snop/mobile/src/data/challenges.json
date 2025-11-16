@@ -5,7 +5,6 @@
       "title": "How to order coffee",
       "prompt": "Order a coffee politely",
       "target": "Hi! I would like a coffee, please.",
-      "target_no": "Hei! Jeg vil gjerne ha en kaffe, takk.",
       "difficulty": 1,
       "frequency": "daily",
       "description": "Practice ordering a coffee. Focus on /r/ and polite tone."
@@ -15,40 +14,9 @@
       "title": "Introduce yourself",
       "prompt": "Introduce yourself in one sentence",
       "target": "Hello, my name is ___.",
-      "target_no": "Hei, jeg heter ___.",
       "difficulty": 1,
       "frequency": "daily",
       "description": "Say your name clearly with correct stress."
-    },
-    {
-      "id": "d3",
-      "title": "Ask for directions",
-      "prompt": "Ask where something is located",
-      "target": "Excuse me, where is the train station?",
-      "target_no": "Unnskyld, hvor er togstasjonen?",
-      "difficulty": 2,
-      "frequency": "daily",
-      "description": "Practice asking for directions politely."
-    },
-    {
-      "id": "d4",
-      "title": "Thank someone",
-      "prompt": "Thank someone for their help",
-      "target": "Thank you very much for your help!",
-      "target_no": "Tusen takk for hjelpen!",
-      "difficulty": 1,
-      "frequency": "daily",
-      "description": "Express gratitude with proper intonation."
-    },
-    {
-      "id": "d5",
-      "title": "Order food",
-      "prompt": "Order a meal at a restaurant",
-      "target": "I would like the salmon, please.",
-      "target_no": "Jeg vil gjerne ha laksen, takk.",
-      "difficulty": 2,
-      "frequency": "daily",
-      "description": "Practice ordering food with clear pronunciation."
     }
   ],
   "weekly": [
@@ -57,16 +25,7 @@
       "title": "Order a coffee IRL",
       "difficulty": 2,
       "frequency": "weekly",
-      "description": "Go to a café and order a coffee in Norwegian. Record a short debrief.",
-      "target_no": "Gå til en kafé og bestill en kaffe på norsk."
-    },
-    {
-      "id": "w2",
-      "title": "Have a short conversation",
-      "difficulty": 2,
-      "frequency": "weekly",
-      "description": "Have a 2-minute conversation in Norwegian about your day.",
-      "target_no": "Ha en 2-minutters samtale på norsk om dagen din."
+      "description": "Go to a café and order a coffee in English. Record a short debrief."
     }
   ],
   "monthly": [
@@ -75,16 +34,14 @@
       "title": "Talk about the weather",
       "difficulty": 2,
       "frequency": "monthly",
-      "description": "Have a 1-minute chat with someone about the weather in Norwegian. Reflect on it.",
-      "target_no": "Snakk om været på norsk i 1 minutt."
+      "description": "Have a 1-minute chat with someone about the weather. Reflect on it."
     },
     {
       "id": "m2",
       "title": "Introduce yourself to a new person",
       "difficulty": 3,
       "frequency": "monthly",
-      "description": "Meet someone new, introduce yourself in Norwegian, and ask one follow-up question.",
-      "target_no": "Møt noen nye, presenter deg selv på norsk, og still ett oppfølgingsspørsmål."
+      "description": "Meet someone new, introduce yourself, and ask one follow-up question."
     }
   ]
 }
