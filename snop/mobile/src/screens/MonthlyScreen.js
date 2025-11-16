@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Platform } from "react-native";
+import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Platform, SafeAreaView } from "react-native";
 import { useChallenges } from "../context/ChallengeContext";
 import { useAudio } from "../context/AudioContext";
 import { useAuth } from "../context/AuthContext";
 import { useUserStats } from "../context/UserStatsContext";
+import { useNavigation } from "@react-navigation/native";
 import RecordButton from "../components/RecordButton";
 import { api } from "../services/api";
 import { speak } from "../services/ttsService";
@@ -12,6 +13,7 @@ import { colors, shadows } from "../styles/colors";
 
 export default function MonthlyScreen({ route }) {
   const { challenges } = useChallenges();
+  const navigation = useNavigation();
   // Use passed challenge or default to first challenge
   const monthly = route?.params?.challenge || challenges.monthly[0];
   const { begin, end, lastUri, playLast } = useAudio();
@@ -101,11 +103,23 @@ export default function MonthlyScreen({ route }) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Norwegian title (prominent) */}
-      <Text style={styles.header}>{monthly?.title_no || monthly?.title}</Text>
-      {monthly?.title_no && (
-        <Text style={styles.headerHelper}>({monthly?.title})</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Back button */}
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed
+          ]}
+        >
+          <Text style={styles.backButtonText}>← Tilbake</Text>
+        </Pressable>
+
+        {/* Norwegian title (prominent) */}
+        <Text style={styles.header}>{monthly?.title_no || monthly?.title}</Text>
+        {monthly?.title_no && (
+          <Text style={styles.headerHelper}>({monthly?.title})</Text>
       )}
 
       {/* Norwegian description (main) */}
@@ -204,15 +218,36 @@ export default function MonthlyScreen({ route }) {
           <Text style={styles.xp}>+{result.xp_gained} XP</Text>
         </View>
       )}
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     padding: 16,
     backgroundColor: colors.background,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 40, 104, 0.1)',
+  },
+  backButtonPressed: {
+    opacity: 0.7,
+  },
+  backButtonText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
   },
   header: {
     fontSize: 26,

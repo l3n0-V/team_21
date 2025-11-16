@@ -1,7 +1,7 @@
 import { Audio } from "expo-av";
 import { Platform } from 'react-native';
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase';
+import { storage, ensureAuth } from './firebase';
 
 export async function startRecording() {
   const permission = await Audio.requestPermissionsAsync();
@@ -62,6 +62,9 @@ export async function uploadAudioFile(audioUri, userId, challengeId) {
     }
 
     // Real Firebase Storage upload for mobile platforms (iOS/Android)
+    // Ensure Firebase Auth is ready before uploading
+    await ensureAuth();
+
     const response = await fetch(audioUri);
     const blob = await response.blob();
 
@@ -72,6 +75,9 @@ export async function uploadAudioFile(audioUri, userId, challengeId) {
 
     // Upload file
     console.log('Uploading audio to Firebase Storage:', filename);
+    console.log('Blob size:', blob.size, 'bytes');
+    console.log('Storage ref:', storageRef.fullPath);
+    console.log('Storage bucket:', storageRef.bucket);
     const snapshot = await uploadBytes(storageRef, blob);
     console.log('Upload successful:', snapshot.metadata.fullPath);
 
@@ -121,6 +127,9 @@ export async function uploadAudioFileWithProgress(audioUri, userId, challengeId,
     }
 
     // Real Firebase Storage upload with progress tracking for mobile platforms
+    // Ensure Firebase Auth is ready before uploading
+    await ensureAuth();
+
     const response = await fetch(audioUri);
     const blob = await response.blob();
 
