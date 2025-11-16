@@ -3,45 +3,72 @@
     {
       "id": "d1",
       "title": "How to order coffee",
-      "prompt": "Order a coffee politely",
-      "target": "Hi! I would like a coffee, please.",
+      "title_no": "Hvordan bestille kaffe",
+      "description": "Practice ordering coffee at a cafe",
+      "description_no": "Øv på å bestille kaffe på en kafé",
+      "prompt": "Can I have a coffee, please?",
+      "target": "Kan jeg få en kaffe, takk?",
       "difficulty": 1,
-      "frequency": "daily",
-      "description": "Practice ordering a coffee. Focus on /r/ and polite tone."
+      "frequency": "daily"
     },
     {
       "id": "d2",
       "title": "Introduce yourself",
-      "prompt": "Introduce yourself in one sentence",
-      "target": "Hello, my name is ___.",
+      "title_no": "Presenter deg selv",
+      "description": "Practice introducing yourself to someone",
+      "description_no": "Øv på å presentere deg selv for noen",
+      "prompt": "Hi, I'm... Nice to meet you",
+      "target": "Hei, jeg heter... Hyggelig å møte deg",
       "difficulty": 1,
-      "frequency": "daily",
-      "description": "Say your name clearly with correct stress."
+      "frequency": "daily"
     }
   ],
   "weekly": [
     {
       "id": "w1",
       "title": "Order a coffee IRL",
+      "title_no": "Bestill en kaffe i virkeligheten",
+      "description": "Go to a cafe and order a coffee in Norwegian. Record a short debrief.",
+      "description_no": "Gå til en kafé og bestill en kaffe på norsk. Ta opp et kort sammendrag.",
+      "prompt": "Hi! Can I have a large coffee with milk?",
+      "target": "Hei! Kan jeg få en stor kaffe med melk?",
       "difficulty": 2,
-      "frequency": "weekly",
-      "description": "Go to a café and order a coffee in English. Record a short debrief."
+      "frequency": "weekly"
+    },
+    {
+      "id": "w2",
+      "title": "Ask for directions",
+      "title_no": "Spør om veibeskrivelse",
+      "description": "Practice asking for directions to the nearest store",
+      "description_no": "Øv på å spørre om veien til nærmeste butikk",
+      "prompt": "Excuse me, where is the nearest store?",
+      "target": "Unnskyld, hvor er nærmeste butikk?",
+      "difficulty": 2,
+      "frequency": "weekly"
     }
   ],
   "monthly": [
     {
       "id": "m1",
       "title": "Talk about the weather",
+      "title_no": "Snakk om været",
+      "description": "Have a conversation about the weather in Norwegian",
+      "description_no": "Ha en samtale om været på norsk",
+      "prompt": "It's nice weather today, isn't it?",
+      "target": "Det er fint vær i dag, ikke sant?",
       "difficulty": 2,
-      "frequency": "monthly",
-      "description": "Have a 1-minute chat with someone about the weather. Reflect on it."
+      "frequency": "monthly"
     },
     {
       "id": "m2",
       "title": "Introduce yourself to a new person",
+      "title_no": "Presenter deg for en ny person",
+      "description": "Meet someone new, introduce yourself, and ask one follow-up question.",
+      "description_no": "Møt noen nye, presenter deg selv, og still et oppfølgingsspørsmål.",
+      "prompt": "Hi! I'm... I'm from... What about you?",
+      "target": "Hei! Jeg heter... Jeg er fra... Hva med deg?",
       "difficulty": 3,
-      "frequency": "monthly",
-      "description": "Meet someone new, introduce yourself, and ask one follow-up question."
+      "frequency": "monthly"
     }
   ]
 }

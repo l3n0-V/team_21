@@ -101,32 +101,43 @@ export default function WeeklyScreen({ route }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Weekly: {weekly?.title}</Text>
+      {/* Norwegian title (prominent) */}
+      <Text style={styles.header}>{weekly?.title_no || weekly?.title}</Text>
+      {weekly?.title_no && (
+        <Text style={styles.headerHelper}>({weekly?.title})</Text>
+      )}
 
-      {/* English description (smaller) */}
-      <Text style={styles.subSmall}>Real-life task: {weekly?.description}</Text>
+      {/* Norwegian description (main) */}
+      <Text style={styles.descriptionNorwegian}>{weekly?.description_no || weekly?.description}</Text>
+      {weekly?.description_no && (
+        <Text style={styles.descriptionHelper}>({weekly?.description})</Text>
+      )}
 
-      {/* Norwegian task description (main) */}
-      {weekly?.target_no && (
-        <Text style={styles.norwegianText}>Oppgave: {weekly?.target_no}</Text>
+      {/* Target phrase section - Norwegian prominent */}
+      {weekly?.target && (
+        <View style={styles.targetSection}>
+          <Text style={styles.targetLabel}>Si pa norsk:</Text>
+          <Text style={styles.targetPhrase}>"{weekly?.target}"</Text>
+          <Text style={styles.targetTranslation}>({weekly?.prompt})</Text>
+        </View>
       )}
 
       {weekly?.target && (
         <>
           <View style={{ height: 16 }} />
           <Pressable
-            onPress={() => speak(weekly?.target_no || weekly?.target)}
+            onPress={() => speak(weekly?.target)}
             style={({ pressed }) => [
               pressed && { opacity: 0.6 }
             ]}
           >
-            <Text style={styles.link}>🔊 Spill av målfrasen (Play target phrase)</Text>
+            <Text style={styles.link}>Spill av malfrasen (Play target phrase)</Text>
           </Pressable>
         </>
       )}
 
       <View style={{ flex: 1 }} />
-      <RecordButton onStart={begin} onStop={end} label="Trykk for å ta opp (Tap to record)" />
+      <RecordButton onStart={begin} onStop={end} label="Trykk for a ta opp (Tap to record)" />
 
       <View style={{ height: 12 }} />
       <View style={styles.row}>
@@ -140,7 +151,7 @@ export default function WeeklyScreen({ route }) {
           ]}
         >
           <Text style={styles.btnText}>
-            ▶︎ Play
+            Spill av (Play)
           </Text>
         </Pressable>
         <Pressable
@@ -153,7 +164,7 @@ export default function WeeklyScreen({ route }) {
           ]}
         >
           <Text style={styles.btnText}>
-            {loading ? "Submitting..." : "⬆ Upload for feedback"}
+            {loading ? "Sender inn..." : "Last opp (Upload)"}
           </Text>
         </Pressable>
       </View>
@@ -161,19 +172,19 @@ export default function WeeklyScreen({ route }) {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2563eb" />
-          <Text style={styles.loadingText}>Analyzing your pronunciation...</Text>
+          <Text style={styles.loadingText}>Analyserer uttalen din...</Text>
         </View>
       )}
 
       {result && !loading && (
         <View style={styles.card}>
           <Text style={styles.resultTitle}>
-            {result.pass ? "✅ Passed!" : "📝 Keep Practicing"}
+            {result.pass ? "Bestatt! (Passed!)" : "Fortsett a ove (Keep Practicing)"}
           </Text>
           <Text style={styles.feedback}>{result.feedback}</Text>
           {result.pronunciation_score && (
             <Text style={styles.score}>
-              Pronunciation Score: {result.pronunciation_score}/100
+              Uttalescore: {result.pronunciation_score}/100
             </Text>
           )}
           <Text style={styles.xp}>+{result.xp_gained} XP</Text>
@@ -185,11 +196,21 @@ export default function WeeklyScreen({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  header: { fontSize: 22, fontWeight: "800" },
-  sub: { fontSize: 16, color: "#374151", marginTop: 6 },
-  subSmall: { fontSize: 13, color: "#6b7280", marginTop: 4, fontStyle: "italic" },
-  norwegianText: { fontSize: 18, color: "#111827", marginTop: 8, fontWeight: "600", lineHeight: 26 },
-  target: { fontSize: 15, color: "#111827", marginTop: 8, fontWeight: "600" },
+  header: { fontSize: 24, fontWeight: "800", color: "#111827" },
+  headerHelper: { fontSize: 14, color: "#6b7280", fontStyle: "italic", marginTop: 2 },
+  descriptionNorwegian: { fontSize: 16, color: "#374151", marginTop: 12, fontWeight: "500", lineHeight: 24 },
+  descriptionHelper: { fontSize: 13, color: "#9ca3af", fontStyle: "italic", marginTop: 4 },
+  targetSection: {
+    marginTop: 20,
+    backgroundColor: "#f0f9ff",
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#2563eb"
+  },
+  targetLabel: { fontSize: 14, color: "#2563eb", fontWeight: "700", marginBottom: 8 },
+  targetPhrase: { fontSize: 22, color: "#1e40af", fontWeight: "700", lineHeight: 30 },
+  targetTranslation: { fontSize: 14, color: "#6b7280", fontStyle: "italic", marginTop: 8 },
   link: { color: "#2563eb", fontWeight: "600", marginTop: 4 },
   row: { flexDirection: "row", gap: 12, marginTop: 12 },
   btn: {
