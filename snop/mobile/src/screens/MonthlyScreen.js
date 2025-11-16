@@ -116,7 +116,7 @@ export default function MonthlyScreen({ route }) {
       {/* Target phrase section - Norwegian prominent */}
       {monthly?.target && (
         <View style={styles.targetSection}>
-          <Text style={styles.targetLabel}>Si pa norsk:</Text>
+          <Text style={styles.targetLabel}>Si på norsk:</Text>
           <Text style={styles.targetPhrase}>"{monthly.target}"</Text>
           <Text style={styles.targetTranslation}>({monthly?.prompt})</Text>
         </View>

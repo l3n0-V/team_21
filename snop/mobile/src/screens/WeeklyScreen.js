@@ -116,7 +116,7 @@ export default function WeeklyScreen({ route }) {
       {/* Target phrase section - Norwegian prominent */}
       {weekly?.target && (
         <View style={styles.targetSection}>
-          <Text style={styles.targetLabel}>Si pa norsk:</Text>
+          <Text style={styles.targetLabel}>Si på norsk:</Text>
           <Text style={styles.targetPhrase}>"{weekly?.target}"</Text>
           <Text style={styles.targetTranslation}>({weekly?.prompt})</Text>
         </View>

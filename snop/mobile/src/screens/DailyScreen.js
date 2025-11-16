@@ -115,7 +115,7 @@ export default function DailyScreen({ route }) {
 
       {/* Target phrase section - Norwegian prominent */}
       <View style={styles.targetSection}>
-        <Text style={styles.targetLabel}>Si pa norsk:</Text>
+        <Text style={styles.targetLabel}>Si på norsk:</Text>
         <Text style={styles.targetPhrase}>"{daily?.target}"</Text>
         <Text style={styles.targetTranslation}>({daily?.prompt})</Text>
       </View>
