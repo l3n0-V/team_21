@@ -17,7 +17,24 @@ export default function MonthlyChallengesScreen({ route }) {
   }, [route?.params?.challenge]);
 
   const handlePractice = (challenge) => {
-    navigation.navigate("MonthlyPractice", { challenge });
+    // Route based on challenge type
+    const type = challenge.type || "pronunciation";
+
+    switch (type) {
+      case "listening":
+        navigation.navigate("ListeningChallenge", { challenge });
+        break;
+      case "fill_blank":
+        navigation.navigate("FillBlankChallenge", { challenge });
+        break;
+      case "multiple_choice":
+        navigation.navigate("MultipleChoiceChallenge", { challenge });
+        break;
+      case "pronunciation":
+      default:
+        navigation.navigate("MonthlyPractice", { challenge });
+        break;
+    }
   };
 
   // Don't render carousel if we're redirecting to practice
@@ -40,9 +57,9 @@ export default function MonthlyChallengesScreen({ route }) {
         </Pressable>
 
         {/* Screen Title */}
-        <Text style={styles.screenTitle}>Manedlige utfordringer</Text>
+        <Text style={styles.screenTitle}>Månedlige utfordringer</Text>
         <Text style={styles.screenSubtitle}>
-          Velg en utfordring og ov uttalen din
+          Velg en utfordring og øv uttalen din
         </Text>
 
         {/* Challenge Carousel */}

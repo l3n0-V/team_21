@@ -17,7 +17,24 @@ export default function DailyChallengesScreen({ route }) {
   }, [route?.params?.challenge]);
 
   const handlePractice = (challenge) => {
-    navigation.navigate("DailyPractice", { challenge });
+    // Route based on challenge type
+    const type = challenge.type || "pronunciation";
+
+    switch (type) {
+      case "listening":
+        navigation.navigate("ListeningChallenge", { challenge });
+        break;
+      case "fill_blank":
+        navigation.navigate("FillBlankChallenge", { challenge });
+        break;
+      case "multiple_choice":
+        navigation.navigate("MultipleChoiceChallenge", { challenge });
+        break;
+      case "pronunciation":
+      default:
+        navigation.navigate("DailyPractice", { challenge });
+        break;
+    }
   };
 
   // Don't render carousel if we're redirecting to practice
@@ -42,7 +59,7 @@ export default function DailyChallengesScreen({ route }) {
         {/* Screen Title */}
         <Text style={styles.screenTitle}>Daglige utfordringer</Text>
         <Text style={styles.screenSubtitle}>
-          Velg en utfordring og ov uttalen din
+          Velg en utfordring og øv uttalen din
         </Text>
 
         {/* Challenge Carousel */}
