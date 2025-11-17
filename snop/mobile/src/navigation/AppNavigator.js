@@ -10,6 +10,10 @@ import WeeklyScreen from "../screens/WeeklyScreen";
 import MonthlyScreen from "../screens/MonthlyScreen";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
+import OnboardingScreen from "../screens/OnboardingScreen";
+import ListeningChallengeScreen from "../screens/ListeningChallengeScreen";
+import FillBlankChallengeScreen from "../screens/FillBlankChallengeScreen";
+import MultipleChoiceChallengeScreen from "../screens/MultipleChoiceChallengeScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +23,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Tabs" component={TabNavigator} />
       {/* Carousel screens for browsing challenges */}
       <Stack.Screen name="Daily" component={DailyChallengesScreen} />
@@ -28,6 +33,10 @@ export default function AppNavigator() {
       <Stack.Screen name="DailyPractice" component={DailyScreen} />
       <Stack.Screen name="WeeklyPractice" component={WeeklyScreen} />
       <Stack.Screen name="MonthlyPractice" component={MonthlyScreen} />
+      {/* New challenge type screens */}
+      <Stack.Screen name="ListeningChallenge" component={ListeningChallengeScreen} />
+      <Stack.Screen name="FillBlankChallenge" component={FillBlankChallengeScreen} />
+      <Stack.Screen name="MultipleChoiceChallenge" component={MultipleChoiceChallengeScreen} />
     </Stack.Navigator>
   );
 }

@@ -36,13 +36,13 @@ export default function WeeklyChallengesScreen({ route }) {
             pressed && styles.backButtonPressed,
           ]}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={styles.backButtonText}>← Tilbake</Text>
         </Pressable>
 
         {/* Screen Title */}
-        <Text style={styles.screenTitle}>Weekly Challenges</Text>
+        <Text style={styles.screenTitle}>Ukentlige utfordringer</Text>
         <Text style={styles.screenSubtitle}>
-          Select a challenge and practice your pronunciation
+          Velg en utfordring og ov uttalen din
         </Text>
 
         {/* Challenge Carousel */}

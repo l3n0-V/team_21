@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
 import { colors, shadows } from "../styles/colors";
 
@@ -8,6 +9,24 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const checkOnboardingAndNavigate = async () => {
+    try {
+      const profileData = await AsyncStorage.getItem("userProfile");
+      if (profileData) {
+        const profile = JSON.parse(profileData);
+        if (profile.onboarding_completed) {
+          navigation.replace("Tabs");
+          return;
+        }
+      }
+      // No profile or onboarding not completed
+      navigation.replace("Onboarding");
+    } catch (error) {
+      console.error("Error checking onboarding:", error);
+      navigation.replace("Onboarding");
+    }
+  };
 
   const submit = async () => {
     if (!email || !password) {
@@ -21,7 +40,7 @@ export default function LoginScreen({ navigation }) {
       if (!r?.ok) {
         Alert.alert("Innlogging mislyktes", "Sjekk e-post og passord");
       } else {
-        navigation.replace("Tabs");
+        await checkOnboardingAndNavigate();
       }
     } catch (error) {
       Alert.alert("Feil", error.message || "Kunne ikke logge inn");
@@ -99,7 +118,7 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         <Pressable
-          onPress={() => navigation.replace("Tabs")}
+          onPress={() => checkOnboardingAndNavigate()}
           style={({ pressed }) => [
             styles.guestBtn,
             pressed && { opacity: 0.7 }

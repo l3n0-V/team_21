@@ -2,6 +2,7 @@
   "daily": [
     {
       "id": "d1",
+      "type": "pronunciation",
       "title": "How to order coffee",
       "title_no": "Hvordan bestille kaffe",
       "description": "Practice ordering coffee at a cafe",
@@ -9,10 +10,17 @@
       "prompt": "Can I have a coffee, please?",
       "target": "Kan jeg få en kaffe, takk?",
       "difficulty": 1,
-      "frequency": "daily"
+      "frequency": "daily",
+      "level": "beginner",
+      "age_group": "all",
+      "topic": "cafe",
+      "irl_bonus_available": true,
+      "irl_bonus_xp": 10,
+      "irl_prompt": "Bestill en kaffe på en ekte kafé og ta bilde av kvitteringen"
     },
     {
       "id": "d2",
+      "type": "pronunciation",
       "title": "Introduce yourself",
       "title_no": "Presenter deg selv",
       "description": "Practice introducing yourself to someone",
@@ -20,12 +28,67 @@
       "prompt": "Hi, I'm... Nice to meet you",
       "target": "Hei, jeg heter... Hyggelig å møte deg",
       "difficulty": 1,
-      "frequency": "daily"
+      "frequency": "daily",
+      "level": "beginner",
+      "age_group": "all",
+      "topic": "social",
+      "irl_bonus_available": true,
+      "irl_bonus_xp": 15,
+      "irl_prompt": "Presenter deg for en ekte person og ta en selfie sammen"
+    },
+    {
+      "id": "d3",
+      "type": "listening",
+      "title": "Listen and choose",
+      "title_no": "Lytt og velg",
+      "description": "Listen to the audio and select the correct translation",
+      "description_no": "Hør på lydklippet og velg riktig oversettelse",
+      "audio_text": "Hvor mye koster dette?",
+      "options": ["How much does this cost?", "Where is this from?", "What time is it?", "How are you?"],
+      "correct_answer": 0,
+      "difficulty": 1,
+      "frequency": "daily",
+      "level": "beginner",
+      "age_group": "all",
+      "topic": "shopping"
+    },
+    {
+      "id": "d4",
+      "type": "fill_blank",
+      "title": "Fill in the blank",
+      "title_no": "Fyll inn det tomme feltet",
+      "description": "Complete the sentence with the missing word",
+      "description_no": "Fullfør setningen med det manglende ordet",
+      "sentence": "Jeg ___ en kaffe, takk.",
+      "missing_word": "vil ha",
+      "hint": "I would like...",
+      "difficulty": 1,
+      "frequency": "daily",
+      "level": "beginner",
+      "age_group": "all",
+      "topic": "cafe"
+    },
+    {
+      "id": "d5",
+      "type": "multiple_choice",
+      "title": "Choose the correct translation",
+      "title_no": "Velg riktig oversettelse",
+      "description": "Select the Norwegian translation for the English phrase",
+      "description_no": "Velg den norske oversettelsen for den engelske frasen",
+      "prompt": "Good morning!",
+      "options": ["God kveld!", "God morgen!", "God natt!", "Ha det bra!"],
+      "correct_answer": 1,
+      "difficulty": 1,
+      "frequency": "daily",
+      "level": "beginner",
+      "age_group": "all",
+      "topic": "greetings"
     }
   ],
   "weekly": [
     {
       "id": "w1",
+      "type": "pronunciation",
       "title": "Order a coffee IRL",
       "title_no": "Bestill en kaffe i virkeligheten",
       "description": "Go to a cafe and order a coffee in Norwegian. Record a short debrief.",
@@ -33,10 +96,17 @@
       "prompt": "Hi! Can I have a large coffee with milk?",
       "target": "Hei! Kan jeg få en stor kaffe med melk?",
       "difficulty": 2,
-      "frequency": "weekly"
+      "frequency": "weekly",
+      "level": "intermediate",
+      "age_group": "all",
+      "topic": "cafe",
+      "irl_bonus_available": true,
+      "irl_bonus_xp": 25,
+      "irl_prompt": "Ta bilde av kaffen du bestilte"
     },
     {
       "id": "w2",
+      "type": "pronunciation",
       "title": "Ask for directions",
       "title_no": "Spør om veibeskrivelse",
       "description": "Practice asking for directions to the nearest store",
@@ -44,12 +114,35 @@
       "prompt": "Excuse me, where is the nearest store?",
       "target": "Unnskyld, hvor er nærmeste butikk?",
       "difficulty": 2,
-      "frequency": "weekly"
+      "frequency": "weekly",
+      "level": "intermediate",
+      "age_group": "all",
+      "topic": "navigation",
+      "irl_bonus_available": true,
+      "irl_bonus_xp": 20,
+      "irl_prompt": "Spør en ekte person om veibeskrivelse og ta et bilde av butikken du fant"
+    },
+    {
+      "id": "w3",
+      "type": "listening",
+      "title": "Understand a conversation",
+      "title_no": "Forstå en samtale",
+      "description": "Listen to a short dialogue and answer questions",
+      "description_no": "Hør på en kort dialog og svar på spørsmål",
+      "audio_text": "Person A: Hva skal du gjøre i helgen? Person B: Jeg skal besøke familien min.",
+      "options": ["They will go to work", "They will visit family", "They will stay home", "They will travel abroad"],
+      "correct_answer": 1,
+      "difficulty": 2,
+      "frequency": "weekly",
+      "level": "intermediate",
+      "age_group": "all",
+      "topic": "conversation"
     }
   ],
   "monthly": [
     {
       "id": "m1",
+      "type": "pronunciation",
       "title": "Talk about the weather",
       "title_no": "Snakk om været",
       "description": "Have a conversation about the weather in Norwegian",
@@ -57,10 +150,17 @@
       "prompt": "It's nice weather today, isn't it?",
       "target": "Det er fint vær i dag, ikke sant?",
       "difficulty": 2,
-      "frequency": "monthly"
+      "frequency": "monthly",
+      "level": "intermediate",
+      "age_group": "all",
+      "topic": "weather",
+      "irl_bonus_available": true,
+      "irl_bonus_xp": 30,
+      "irl_prompt": "Snakk med noen om været og ta et bilde av været utenfor"
     },
     {
       "id": "m2",
+      "type": "pronunciation",
       "title": "Introduce yourself to a new person",
       "title_no": "Presenter deg for en ny person",
       "description": "Meet someone new, introduce yourself, and ask one follow-up question.",
@@ -68,7 +168,29 @@
       "prompt": "Hi! I'm... I'm from... What about you?",
       "target": "Hei! Jeg heter... Jeg er fra... Hva med deg?",
       "difficulty": 3,
-      "frequency": "monthly"
+      "frequency": "monthly",
+      "level": "advanced",
+      "age_group": "all",
+      "topic": "social",
+      "irl_bonus_available": true,
+      "irl_bonus_xp": 50,
+      "irl_prompt": "Ta en selfie med personen du møtte (med deres tillatelse)"
+    },
+    {
+      "id": "m3",
+      "type": "fill_blank",
+      "title": "Complete the dialogue",
+      "title_no": "Fullfør dialogen",
+      "description": "Fill in the missing parts of a conversation",
+      "description_no": "Fyll inn de manglende delene av en samtale",
+      "sentence": "A: Hva heter du? B: Jeg ___ ... A: Hyggelig å møte deg!",
+      "missing_word": "heter",
+      "hint": "My name is...",
+      "difficulty": 2,
+      "frequency": "monthly",
+      "level": "intermediate",
+      "age_group": "all",
+      "topic": "social"
     }
   ]
 }

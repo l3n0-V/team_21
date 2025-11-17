@@ -4,6 +4,7 @@ import { useChallenges } from "../context/ChallengeContext";
 import { useAudio } from "../context/AudioContext";
 import { useAuth } from "../context/AuthContext";
 import { useUserStats } from "../context/UserStatsContext";
+import { usePerformance } from "../context/PerformanceContext";
 import { useNavigation } from "@react-navigation/native";
 import RecordButton from "../components/RecordButton";
 import { api } from "../services/api";
@@ -19,6 +20,7 @@ export default function MonthlyScreen({ route }) {
   const { begin, end, lastUri, playLast } = useAudio();
   const { token, user } = useAuth();
   const { refreshStats } = useUserStats();
+  const { updatePerformance } = usePerformance();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -74,6 +76,18 @@ export default function MonthlyScreen({ route }) {
       console.log('Scoring result:', response);
 
       setResult(response);
+
+      // Update performance tracking
+      try {
+        await updatePerformance({
+          challenge: monthly,
+          score: response.pronunciation_score || response.similarity || (response.pass ? 100 : 50),
+          passed: response.pass,
+          xpEarned: response.xp_gained,
+        });
+      } catch (perfError) {
+        console.warn("Failed to update performance:", perfError);
+      }
 
       // Show success message if the user passed
       if (response.pass) {
