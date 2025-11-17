@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { colors, shadows, getDifficultyColor, getFrequencyColor } from "../styles/colors";
+import { colors, shadows, getDifficultyColor, getDifficultyLabel, getFrequencyColor } from "../styles/colors";
 
 export default function ChallengeCard({ challenge }) {
   const nav = useNavigation();
@@ -64,7 +64,7 @@ export default function ChallengeCard({ challenge }) {
         </View>
         <View style={[styles.badge, { backgroundColor: `${difficultyColor}20` }]}>
           <Text style={[styles.badgeText, { color: difficultyColor }]}>
-            {challenge.difficulty}
+            {getDifficultyLabel(challenge.difficulty)}
           </Text>
         </View>
       </View>

@@ -36,13 +36,13 @@ export default function MonthlyChallengesScreen({ route }) {
             pressed && styles.backButtonPressed,
           ]}
         >
-          <Text style={styles.backButtonText}>← Tilbake</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </Pressable>
 
         {/* Screen Title */}
-        <Text style={styles.screenTitle}>Manedlige utfordringer</Text>
+        <Text style={styles.screenTitle}>Monthly Challenges</Text>
         <Text style={styles.screenSubtitle}>
-          Velg en utfordring og ov uttalen din
+          Select a challenge and practice your pronunciation
         </Text>
 
         {/* Challenge Carousel */}

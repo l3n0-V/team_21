@@ -39,37 +39,34 @@ export default function HomeScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Utfordringer</Text>
+        <Text style={styles.sectionTitle}>Challenges</Text>
       <Text style={styles.sectionSubtitle}>
-        Velg en kategori for å øve uttale
+        Select a category to practice pronunciation
       </Text>
 
       <View style={styles.cardsContainer}>
         <FeatureCard
-          title="Daglig"
-          titleEn="Daily"
+          title="Daily"
           icon="☀️"
           count={challenges.daily.length}
           onPress={() => handlePress("Daily")}
-          onLongPress={() => handleLongPress("Daglige", challenges.daily)}
+          onLongPress={() => handleLongPress("Daily", challenges.daily)}
         />
 
         <FeatureCard
-          title="Ukentlig"
-          titleEn="Weekly"
+          title="Weekly"
           icon="📅"
           count={challenges.weekly.length}
           onPress={() => handlePress("Weekly")}
-          onLongPress={() => handleLongPress("Ukentlige", challenges.weekly)}
+          onLongPress={() => handleLongPress("Weekly", challenges.weekly)}
         />
 
         <FeatureCard
-          title="Månedlig"
-          titleEn="Monthly"
+          title="Monthly"
           icon="🏆"
           count={challenges.monthly.length}
           onPress={() => handlePress("Monthly")}
-          onLongPress={() => handleLongPress("Månedlige", challenges.monthly)}
+          onLongPress={() => handleLongPress("Monthly", challenges.monthly)}
         />
       </View>
       </ScrollView>
@@ -88,7 +85,7 @@ export default function HomeScreen() {
           <View style={styles.previewContainer}>
             <View style={styles.previewHeader}>
               <Text style={styles.previewTitle}>
-                {previewData?.type} utfordringer
+                {previewData?.type} challenges
               </Text>
               <Pressable
                 onPress={() => setPreviewVisible(false)}
@@ -110,13 +107,13 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 setPreviewVisible(false);
-                if (previewData?.type === "Daglige") handlePress("Daily");
-                else if (previewData?.type === "Ukentlige") handlePress("Weekly");
-                else if (previewData?.type === "Månedlige") handlePress("Monthly");
+                if (previewData?.type === "Daily") handlePress("Daily");
+                else if (previewData?.type === "Weekly") handlePress("Weekly");
+                else if (previewData?.type === "Monthly") handlePress("Monthly");
               }}
               style={styles.previewButton}
             >
-              <Text style={styles.previewButtonText}>Se alle</Text>
+              <Text style={styles.previewButtonText}>See all</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -125,7 +122,7 @@ export default function HomeScreen() {
   );
 }
 
-function FeatureCard({ title, titleEn, icon, count, onPress, onLongPress }) {
+function FeatureCard({ title, icon, count, onPress, onLongPress }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -166,9 +163,8 @@ function FeatureCard({ title, titleEn, icon, count, onPress, onLongPress }) {
 
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle}>{title}</Text>
-          <Text style={styles.cardTitleEn}>{titleEn}</Text>
           <Text style={styles.cardCount}>
-            {count} {count === 1 ? "utfordring" : "utfordringer"}
+            {count} {count === 1 ? "challenge" : "challenges"}
           </Text>
         </View>
 
@@ -176,7 +172,7 @@ function FeatureCard({ title, titleEn, icon, count, onPress, onLongPress }) {
           <Text style={styles.arrow}>→</Text>
         </View>
 
-        <Text style={styles.longPressHint}>Hold inne for forhåndsvisning</Text>
+        <Text style={styles.longPressHint}>Hold for preview</Text>
       </Animated.View>
     </Pressable>
   );

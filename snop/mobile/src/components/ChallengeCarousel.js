@@ -29,26 +29,26 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
     if (typeof difficulty === 'number') {
       switch (difficulty) {
         case 1:
-          return 'Lett';
+          return 'Easy';
         case 2:
-          return 'Middels';
+          return 'Medium';
         case 3:
-          return 'Vanskelig';
+          return 'Hard';
         default:
-          return 'Ukjent';
+          return 'Unknown';
       }
     }
     const diffLower = difficulty?.toLowerCase() || 'easy';
     switch (diffLower) {
       case 'easy':
       case 'lett':
-        return 'Lett';
+        return 'Easy';
       case 'medium':
       case 'middels':
-        return 'Middels';
+        return 'Medium';
       case 'hard':
       case 'vanskelig':
-        return 'Vanskelig';
+        return 'Hard';
       default:
         return difficulty;
     }
@@ -87,7 +87,7 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
           {/* XP Reward */}
           {challenge.xp_reward && (
             <View style={styles.xpContainer}>
-              <Text style={styles.xpLabel}>Belonning:</Text>
+              <Text style={styles.xpLabel}>Reward:</Text>
               <Text style={styles.xpValue}>+{challenge.xp_reward} XP</Text>
             </View>
           )}
@@ -100,7 +100,7 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
               pressed && styles.practiceButtonPressed,
             ]}
           >
-            <Text style={styles.practiceButtonText}>Øv nå</Text>
+            <Text style={styles.practiceButtonText}>Practice now</Text>
           </Pressable>
         </View>
       </View>
@@ -126,7 +126,7 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
   if (!challenges || challenges.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Ingen utfordringer tilgjengelig</Text>
+        <Text style={styles.emptyText}>No challenges available</Text>
       </View>
     );
   }
@@ -149,7 +149,7 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
       </ScrollView>
       {renderPaginationDots()}
       <Text style={styles.counterText}>
-        {currentIndex + 1} av {challenges.length}
+        {currentIndex + 1} of {challenges.length}
       </Text>
     </View>
   );
