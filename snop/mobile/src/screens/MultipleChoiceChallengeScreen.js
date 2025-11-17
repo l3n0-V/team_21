@@ -39,14 +39,14 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
 
     if (isCorrect) {
       Alert.alert(
-        "Riktig!",
-        "Du fikk 10 XP",
+        "Riktig! 🎉",
+        "Bra jobbet! Du fikk 10 XP",
         [{ text: "Fortsett", onPress: () => navigation.goBack() }]
       );
     } else {
       Alert.alert(
-        "Feil svar",
-        `Riktig svar var: ${challenge.options[challenge.correct_answer]}`,
+        "Nesten! 🤔",
+        `Ikke gi opp - oversettelse tar tid å mestre.\n\nRiktig svar: ${challenge.options[challenge.correct_answer]}`,
         [
           {
             text: "Prøv igjen",

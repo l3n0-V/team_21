@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,16 +17,51 @@ export default function ListeningChallengeScreen({ route, navigation }) {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [norwegianVoice, setNorwegianVoice] = useState(null);
+
+  // Find the best Norwegian voice on device
+  useEffect(() => {
+    const findNorwegianVoice = async () => {
+      try {
+        const voices = await Speech.getAvailableVoicesAsync();
+        // Look for Norwegian voices - prefer higher quality ones
+        const nbVoices = voices.filter(
+          (v) => v.language === "nb-NO" || v.language === "no-NO"
+        );
+
+        if (nbVoices.length > 0) {
+          // Prefer non-compact voices (higher quality)
+          const preferredVoice = nbVoices.find(
+            (v) => !v.identifier.includes("compact")
+          ) || nbVoices[0];
+          setNorwegianVoice(preferredVoice.identifier);
+          console.log("Using Norwegian voice:", preferredVoice);
+        }
+      } catch (error) {
+        console.warn("Could not get voices:", error);
+      }
+    };
+    findNorwegianVoice();
+  }, []);
 
   const playAudio = () => {
     if (isPlaying) return;
     setIsPlaying(true);
-    Speech.speak(challenge.audio_text, {
+
+    const speechOptions = {
       language: "nb-NO",
-      rate: 0.8,
+      rate: 0.85,  // Slightly slower for clarity
+      pitch: 1.0,  // Natural pitch
       onDone: () => setIsPlaying(false),
       onError: () => setIsPlaying(false),
-    });
+    };
+
+    // Use specific Norwegian voice if available
+    if (norwegianVoice) {
+      speechOptions.voice = norwegianVoice;
+    }
+
+    Speech.speak(challenge.audio_text, speechOptions);
   };
 
   const handleSubmit = async () => {
@@ -52,14 +87,14 @@ export default function ListeningChallengeScreen({ route, navigation }) {
 
     if (isCorrect) {
       Alert.alert(
-        "Riktig!",
-        "Du fikk 10 XP",
+        "Riktig! 🎉",
+        "Du hørte riktig! Du fikk 10 XP",
         [{ text: "Fortsett", onPress: () => navigation.goBack() }]
       );
     } else {
       Alert.alert(
-        "Feil svar",
-        `Riktig svar var: ${challenge.options[challenge.correct_answer]}`,
+        "Nesten! 👂",
+        `Lytting er vanskelig - dette er helt normalt!\n\nRiktig svar: ${challenge.options[challenge.correct_answer]}`,
         [{ text: "Prøv igjen", onPress: () => setSubmitted(false) }]
       );
     }

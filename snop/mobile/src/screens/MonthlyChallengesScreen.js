@@ -76,7 +76,7 @@ export default function MonthlyChallengesScreen({ route }) {
   );
 }
 
-const styles = StyleSheet.Create({
+const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },

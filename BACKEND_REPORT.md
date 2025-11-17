@@ -2,7 +2,7 @@
 **Project:** SNOP - Language Learning App
 **Last Updated:** November 17, 2025
 **Backend Location:** `/Users/henrikdahlostrom/Desktop/team_21/snop/Flask-Firebase/`
-**Recent Commits:** `be690f8`, `7f38578`, `383210f` (November 17, 2025)
+**Recent Commits:** `a2bf51f`, `be690f8`, `7f38578`, `383210f` (November 17, 2025)
 
 ---
 
@@ -22,6 +22,77 @@ The Flask-Firebase backend has reached **FULL PRODUCTION READINESS** as of Novem
 - **Deployment-ready** with Gunicorn and Docker support
 - **Complete deployment documentation** (PRODUCTION.md)
 - **Ready for immediate production deployment**
+
+---
+
+## November 17, 2025 - Commit `a2bf51f`
+
+### Summary
+Added `/scoreWeekly` and `/scoreMonthly` endpoints to support multi-frequency pronunciation challenges with XP multipliers. These endpoints enable the mobile app's new challenge filtering and performance tracking features by allowing users to submit pronunciation attempts for weekly and monthly challenges with appropriate XP rewards.
+
+### Changes
+
+- **[app.py]**: Added POST /scoreWeekly endpoint
+  - Files affected: `/Users/henrikdahlostrom/Desktop/team_21/snop/Flask-Firebase/app.py` (lines 367-427)
+  - Impact: Users can now submit weekly challenge attempts and receive 1.5x XP multiplier
+  - Rationale: Supports differentiated XP rewards for weekly vs. daily challenges to incentivize longer-term engagement
+  - Key features:
+    - Authentication required via `@require_auth` decorator
+    - Validates challenge_id and audio_url fields
+    - Retrieves challenge from Firestore to get target phrase
+    - Uses self-hosted Whisper model (or mock) for pronunciation evaluation
+    - Applies 1.5x XP multiplier: `result["xp_gained"] = int(result["xp_gained"] * 1.5)`
+    - Stores attempt in Firestore via `add_attempt()`
+    - Checks and awards badges via `check_and_award_badges()`
+    - Returns transcription, XP gained, feedback, similarity score, and new badges
+
+- **[app.py]**: Added POST /scoreMonthly endpoint
+  - Files affected: `/Users/henrikdahlostrom/Desktop/team_21/snop/Flask-Firebase/app.py` (lines 429-489)
+  - Impact: Users can now submit monthly challenge attempts and receive 2x XP multiplier
+  - Rationale: Provides highest XP rewards for monthly challenges, encouraging sustained practice
+  - Key features:
+    - Authentication required via `@require_auth` decorator
+    - Identical validation and processing pipeline as /scoreWeekly
+    - Applies 2x XP multiplier: `result["xp_gained"] = int(result["xp_gained"] * 2.0)`
+    - Full integration with badge system and Firestore persistence
+
+### Technical Details
+
+**XP Multiplier System:**
+- Daily challenges: 1x XP (base rate)
+- Weekly challenges: 1.5x XP (50% bonus)
+- Monthly challenges: 2x XP (100% bonus)
+
+**Request/Response Format (identical for both endpoints):**
+```json
+// Request
+POST /scoreWeekly or /scoreMonthly
+Authorization: Bearer <token>
+{
+  "challenge_id": "w1",
+  "audio_url": "https://storage.googleapis.com/..."
+}
+
+// Response
+{
+  "transcription": "User's spoken text",
+  "xp_gained": 21,  // 14 * 1.5 for weekly
+  "feedback": "Great pronunciation!",
+  "pass": true,
+  "similarity": 0.89,
+  "new_badges": [...]  // Optional, if badges earned
+}
+```
+
+**Integration Points with Mobile App:**
+
+The commit message indicates these changes support:
+1. **Challenge Filter** - Mobile app (DailyChallengesScreen, WeeklyChallengesScreen, MonthlyChallengesScreen) can now submit challenges to their respective scoring endpoints
+2. **Performance Tracking** - XP multipliers incentivize users to attempt higher-difficulty weekly and monthly challenges
+3. **Onboarding Flow** - New users can immediately access the full challenge hierarchy
+
+**Code Quality Note:**
+The current `app.py` contains duplicate route definitions for `/scoreWeekly` (lines 367-427 and 491-551) and `/scoreMonthly` (lines 429-489 and 553-613). Flask will use the first defined route, but this duplication should be cleaned up in a future commit to avoid confusion.
 
 ---
 

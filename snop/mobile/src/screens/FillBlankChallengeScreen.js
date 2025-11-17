@@ -44,14 +44,14 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
 
     if (isCorrect) {
       Alert.alert(
-        "Riktig!",
-        "Du fikk 10 XP",
+        "Riktig! 🎉",
+        "Flott jobbet! Du fikk 10 XP",
         [{ text: "Fortsett", onPress: () => navigation.goBack() }]
       );
     } else {
       Alert.alert(
-        "Feil svar",
-        `Riktig svar var: "${challenge.missing_word}"`,
+        "Nesten! 💪",
+        `Dette er en vanlig feil - mange trenger flere forsøk.\n\nRiktig svar: "${challenge.missing_word}"`,
         [
           {
             text: "Prøv igjen",

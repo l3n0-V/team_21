@@ -159,7 +159,7 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
   );
 }
 
-const styles = StyleSheet.Create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
