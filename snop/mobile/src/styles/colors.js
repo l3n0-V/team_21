@@ -126,6 +126,37 @@ export const getDifficultyColor = (difficulty) => {
   }
 };
 
+// Helper function to get difficulty label
+export const getDifficultyLabel = (difficulty) => {
+  // Handle both numeric (1, 2, 3) and string difficulties
+  if (typeof difficulty === 'number') {
+    switch (difficulty) {
+      case 1:
+        return 'Easy';
+      case 2:
+        return 'Medium';
+      case 3:
+        return 'Hard';
+      default:
+        return 'Unknown';
+    }
+  }
+  const difficultyLower = difficulty?.toLowerCase() || 'easy';
+  switch (difficultyLower) {
+    case 'easy':
+    case 'lett':
+      return 'Easy';
+    case 'medium':
+    case 'middels':
+      return 'Medium';
+    case 'hard':
+    case 'vanskelig':
+      return 'Hard';
+    default:
+      return difficulty;
+  }
+};
+
 // Helper function to get frequency color
 export const getFrequencyColor = (frequency) => {
   const frequencyLower = frequency?.toLowerCase() || 'daily';

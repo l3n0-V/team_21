@@ -35,7 +35,7 @@ export default function TabNavigator() {
               />
             </View>
           ),
-          tabBarLabel: "Hjem",
+          tabBarLabel: "Home",
         }}
       />
       <Tab.Screen
@@ -52,7 +52,7 @@ export default function TabNavigator() {
               />
             </View>
           ),
-          tabBarLabel: "Toppliste",
+          tabBarLabel: "Leaderboard",
         }}
       />
       <Tab.Screen
@@ -69,7 +69,7 @@ export default function TabNavigator() {
               />
             </View>
           ),
-          tabBarLabel: "Statistikk",
+          tabBarLabel: "Stats",
         }}
       />
     </Tab.Navigator>

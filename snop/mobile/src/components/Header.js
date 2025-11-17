@@ -22,8 +22,8 @@ export default function Header() {
       <View style={styles.content}>
         <View style={styles.leftSection}>
           <Text style={styles.logo}>SNOP</Text>
-          <Text style={styles.greeting}>Velkommen tilbake!</Text>
-          <Text style={styles.subtitle}>Fullfør utfordringer for å tjene XP</Text>
+          <Text style={styles.greeting}>Welcome back!</Text>
+          <Text style={styles.subtitle}>Complete challenges to earn XP</Text>
         </View>
 
         <View style={styles.rightSection}>

@@ -113,7 +113,7 @@ export default function MonthlyScreen({ route }) {
             pressed && styles.backButtonPressed
           ]}
         >
-          <Text style={styles.backButtonText}>← Tilbake</Text>
+          <Text style={styles.backButtonText}>← Back</Text>
         </Pressable>
 
         {/* Norwegian title (prominent) */}
@@ -147,13 +147,13 @@ export default function MonthlyScreen({ route }) {
               pressed && { opacity: 0.7 }
             ]}
           >
-            <Text style={styles.playTargetText}>Spill av målfrasen (Play target phrase)</Text>
+            <Text style={styles.playTargetText}>Play target phrase</Text>
           </Pressable>
         </>
       )}
 
       <View style={{ flex: 1 }} />
-      <RecordButton onStart={begin} onStop={end} label="Trykk for å ta opp (Tap to record)" />
+      <RecordButton onStart={begin} onStop={end} label="Tap to record" />
 
       <View style={{ height: 12 }} />
       <View style={styles.row}>
@@ -170,7 +170,7 @@ export default function MonthlyScreen({ route }) {
             styles.btnSecondaryText,
             (!lastUri || loading) && styles.btnDisabledText
           ]}>
-            Spill av (Play)
+            Play
           </Text>
         </Pressable>
         <Pressable
@@ -186,7 +186,7 @@ export default function MonthlyScreen({ route }) {
             styles.btnPrimaryText,
             (!lastUri || loading) && styles.btnDisabledText
           ]}>
-            {loading ? "Sender inn..." : "Last opp (Upload)"}
+            {loading ? "Submitting..." : "Upload"}
           </Text>
         </Pressable>
       </View>
@@ -194,7 +194,7 @@ export default function MonthlyScreen({ route }) {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Analyserer uttalen din...</Text>
+          <Text style={styles.loadingText}>Analyzing your pronunciation...</Text>
         </View>
       )}
 

@@ -11,8 +11,12 @@ export default {
     resizeMode: "contain",
     backgroundColor: "#ffffff",
   },
-  ios: { supportsTablet: true },
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: "com.team21.snop"
+  },
   android: {
+    package: "com.team21.snop",
     // adaptiveIcon: {
     //   foregroundImage: "./assets/images/adaptive-icon.png", // <- midlertidig ut
     //   backgroundColor: "#ffffff",
