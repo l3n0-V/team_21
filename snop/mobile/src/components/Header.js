@@ -3,38 +3,39 @@ import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useUserStats } from "../context/UserStatsContext";
-import { colors } from "../styles/colors";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Header() {
   const { stats, loading, error } = useUserStats();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <LinearGradient
-      colors={[colors.primary, "#003580"]}
+      colors={[colors.primary, colors.primaryDark]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.container, { paddingTop: insets.top + 16 }]}
     >
       {/* Decorative diagonal stripe */}
-      <View style={styles.diagonalStripe} />
+      <View style={[styles.diagonalStripe, { backgroundColor: colors.accent }]} />
 
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <Text style={styles.logo}>SNOP</Text>
-          <Text style={styles.greeting}>Welcome back!</Text>
+          <Text style={[styles.logo, { color: colors.textWhite }]}>SNOP</Text>
+          <Text style={[styles.greeting, { color: colors.textWhite }]}>Welcome back!</Text>
           <Text style={styles.subtitle}>Complete challenges to earn XP</Text>
         </View>
 
         <View style={styles.rightSection}>
-          <View style={styles.xpBadge}>
+          <View style={[styles.xpBadge, { backgroundColor: colors.accent }]}>
             {loading ? (
               <ActivityIndicator size="small" color={colors.textWhite} />
             ) : error ? (
-              <Text style={styles.xpText}>--</Text>
+              <Text style={[styles.xpText, { color: colors.textWhite }]}>--</Text>
             ) : (
               <>
-                <Text style={styles.xpValue}>{stats.xp_total}</Text>
+                <Text style={[styles.xpValue, { color: colors.textWhite }]}>{stats.xp_total}</Text>
                 <Text style={styles.xpLabel}>XP</Text>
               </>
             )}
@@ -43,7 +44,7 @@ export default function Header() {
           {stats.streak_days > 0 && (
             <View style={styles.streakBadge}>
               <Text style={styles.streakEmoji}>🔥</Text>
-              <Text style={styles.streakText}>{stats.streak_days}</Text>
+              <Text style={[styles.streakText, { color: colors.textWhite }]}>{stats.streak_days}</Text>
             </View>
           )}
         </View>
@@ -51,7 +52,7 @@ export default function Header() {
 
       {/* Bottom wave decoration */}
       <View style={styles.waveContainer}>
-        <View style={styles.wave} />
+        <View style={[styles.wave, { backgroundColor: colors.background }]} />
       </View>
     </LinearGradient>
   );
@@ -70,7 +71,6 @@ const styles = StyleSheet.create({
     right: -100,
     width: 300,
     height: 200,
-    backgroundColor: colors.accent,
     opacity: 0.15,
     transform: [{ rotate: "-15deg" }],
   },
@@ -85,14 +85,12 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 32,
     fontWeight: "900",
-    color: colors.textWhite,
     letterSpacing: 4,
     marginBottom: 8,
   },
   greeting: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textWhite,
     marginBottom: 4,
   },
   subtitle: {
@@ -105,7 +103,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   xpBadge: {
-    backgroundColor: colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 14,
@@ -120,7 +117,6 @@ const styles = StyleSheet.create({
   xpValue: {
     fontSize: 24,
     fontWeight: "900",
-    color: colors.textWhite,
   },
   xpLabel: {
     fontSize: 12,
@@ -131,7 +127,6 @@ const styles = StyleSheet.create({
   xpText: {
     fontSize: 18,
     fontWeight: "800",
-    color: colors.textWhite,
   },
   streakBadge: {
     flexDirection: "row",
@@ -146,7 +141,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   streakText: {
-    color: colors.textWhite,
     fontWeight: "700",
     fontSize: 14,
   },
@@ -164,7 +158,6 @@ const styles = StyleSheet.create({
     left: -20,
     right: -20,
     height: 30,
-    backgroundColor: colors.background,
     borderTopLeftRadius: 100,
     borderTopRightRadius: 100,
   },

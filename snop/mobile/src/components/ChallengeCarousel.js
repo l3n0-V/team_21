@@ -7,7 +7,8 @@ import {
   Pressable,
   Dimensions,
 } from "react-native";
-import { colors, shadows, getDifficultyColor } from "../styles/colors";
+import { getDifficultyColor } from "../styles/colors";
+import { useTheme } from "../context/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_PADDING = 32;
@@ -16,6 +17,7 @@ const CARD_WIDTH = SCREEN_WIDTH - CARD_PADDING;
 export default function ChallengeCarousel({ challenges, onPractice }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef(null);
+  const { colors } = useTheme();
 
   const handleScroll = (event) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -60,26 +62,26 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
 
     return (
       <View key={challenge.id} style={styles.cardWrapper}>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.background, shadowColor: colors.shadow }]}>
           {/* Difficulty Badge */}
           <View style={[styles.difficultyBadge, { backgroundColor: difficultyColor }]}>
-            <Text style={styles.difficultyText}>{difficultyLabel}</Text>
+            <Text style={[styles.difficultyText, { color: colors.textWhite }]}>{difficultyLabel}</Text>
           </View>
 
           {/* Challenge Title */}
-          <Text style={styles.cardTitle}>
+          <Text style={[styles.cardTitle, { color: colors.primary }]}>
             {challenge.title_no || challenge.title}
           </Text>
           {challenge.title_no && challenge.title !== challenge.title_no && (
-            <Text style={styles.cardTitleHelper}>({challenge.title})</Text>
+            <Text style={[styles.cardTitleHelper, { color: colors.textSecondary }]}>({challenge.title})</Text>
           )}
 
           {/* Description */}
-          <Text style={styles.cardDescription}>
+          <Text style={[styles.cardDescription, { color: colors.textPrimary }]}>
             {challenge.description_no || challenge.description}
           </Text>
           {challenge.description_no && challenge.description !== challenge.description_no && (
-            <Text style={styles.cardDescriptionHelper}>
+            <Text style={[styles.cardDescriptionHelper, { color: colors.textLight }]}>
               ({challenge.description})
             </Text>
           )}
@@ -87,8 +89,8 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
           {/* XP Reward */}
           {challenge.xp_reward && (
             <View style={styles.xpContainer}>
-              <Text style={styles.xpLabel}>Reward:</Text>
-              <Text style={styles.xpValue}>+{challenge.xp_reward} XP</Text>
+              <Text style={[styles.xpLabel, { color: colors.textSecondary }]}>Reward:</Text>
+              <Text style={[styles.xpValue, { color: colors.success }]}>+{challenge.xp_reward} XP</Text>
             </View>
           )}
 
@@ -97,10 +99,11 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
             onPress={() => onPractice(challenge)}
             style={({ pressed }) => [
               styles.practiceButton,
+              { backgroundColor: colors.accent, shadowColor: colors.shadow },
               pressed && styles.practiceButtonPressed,
             ]}
           >
-            <Text style={styles.practiceButtonText}>Practice now</Text>
+            <Text style={[styles.practiceButtonText, { color: colors.textWhite }]}>Practice now</Text>
           </Pressable>
         </View>
       </View>
@@ -115,7 +118,8 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
             key={index}
             style={[
               styles.paginationDot,
-              index === currentIndex && styles.paginationDotActive,
+              { backgroundColor: colors.border },
+              index === currentIndex && { backgroundColor: colors.primary, width: 24 },
             ]}
           />
         ))}
@@ -126,7 +130,7 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
   if (!challenges || challenges.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No challenges available</Text>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No challenges available</Text>
       </View>
     );
   }
@@ -148,14 +152,14 @@ export default function ChallengeCarousel({ challenges, onPractice }) {
         {challenges.map(renderCard)}
       </ScrollView>
       {renderPaginationDots()}
-      <Text style={styles.counterText}>
+      <Text style={[styles.counterText, { color: colors.textSecondary }]}>
         {currentIndex + 1} of {challenges.length}
       </Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.Create({
   container: {
     flex: 1,
   },
@@ -168,11 +172,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   card: {
-    backgroundColor: colors.background,
     borderRadius: 16,
     padding: 24,
     minHeight: 320,
-    ...shadows.medium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   difficultyBadge: {
     alignSelf: "flex-start",
@@ -182,7 +188,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   difficultyText: {
-    color: colors.textWhite,
     fontWeight: "700",
     fontSize: 13,
     textTransform: "uppercase",
@@ -191,26 +196,22 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 24,
     fontWeight: "800",
-    color: colors.primary,
     marginBottom: 4,
     lineHeight: 30,
   },
   cardTitleHelper: {
     fontSize: 14,
-    color: colors.textSecondary,
     fontStyle: "italic",
     marginBottom: 12,
   },
   cardDescription: {
     fontSize: 16,
-    color: colors.textPrimary,
     lineHeight: 24,
     marginBottom: 4,
     marginTop: 8,
   },
   cardDescriptionHelper: {
     fontSize: 13,
-    color: colors.textLight,
     fontStyle: "italic",
     marginBottom: 16,
   },
@@ -222,29 +223,28 @@ const styles = StyleSheet.create({
   },
   xpLabel: {
     fontSize: 14,
-    color: colors.textSecondary,
     marginRight: 6,
   },
   xpValue: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.success,
   },
   practiceButton: {
-    backgroundColor: colors.accent,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: "center",
     marginTop: "auto",
-    ...shadows.small,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   practiceButtonPressed: {
     opacity: 0.8,
     transform: [{ scale: 0.98 }],
   },
   practiceButtonText: {
-    color: colors.textWhite,
     fontWeight: "700",
     fontSize: 16,
   },
@@ -259,16 +259,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.border,
   },
   paginationDotActive: {
-    backgroundColor: colors.primary,
-    width: 24,
   },
   counterText: {
     textAlign: "center",
     fontSize: 14,
-    color: colors.textSecondary,
     marginTop: 12,
     fontWeight: "500",
   },
@@ -280,7 +276,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: colors.textSecondary,
     textAlign: "center",
   },
 });

@@ -6,6 +6,7 @@ import { UserStatsProvider } from "./src/context/UserStatsContext";
 import { ChallengeProvider } from "./src/context/ChallengeContext";
 import { AudioProvider } from "./src/context/AudioContext";
 import { PerformanceProvider } from "./src/context/PerformanceContext";
+import { ThemeProvider } from "./src/context/ThemeContext";
 import ErrorBoundary from "./src/components/ErrorBoundary";
 
 const theme = {
@@ -16,19 +17,21 @@ const theme = {
 export default function App() {
   return (
     <ErrorBoundary>
-      <NavigationContainer theme={theme}>
-        <AuthProvider>
-          <UserStatsProvider>
-            <PerformanceProvider>
-              <ChallengeProvider>
-                <AudioProvider>
-                  <AppNavigator />
-                </AudioProvider>
-              </ChallengeProvider>
-            </PerformanceProvider>
-          </UserStatsProvider>
-        </AuthProvider>
-      </NavigationContainer>
+      <ThemeProvider>
+        <NavigationContainer theme={theme}>
+          <AuthProvider>
+            <UserStatsProvider>
+              <PerformanceProvider>
+                <ChallengeProvider>
+                  <AudioProvider>
+                    <AppNavigator />
+                  </AudioProvider>
+                </ChallengeProvider>
+              </PerformanceProvider>
+            </UserStatsProvider>
+          </AuthProvider>
+        </NavigationContainer>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

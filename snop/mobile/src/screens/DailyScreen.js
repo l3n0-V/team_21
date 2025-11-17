@@ -10,11 +10,12 @@ import RecordButton from "../components/RecordButton";
 import { api } from "../services/api";
 import { speak } from "../services/ttsService";
 import { uploadAudioFile } from "../services/audioService";
-import { colors, shadows } from "../styles/colors";
+import { useTheme } from "../context/ThemeContext";
 
 export default function DailyScreen({ route }) {
   const { challenges } = useChallenges();
   const navigation = useNavigation();
+  const { colors } = useTheme();
   // Use passed challenge or default to first challenge
   const daily = route?.params?.challenge || challenges.daily[0];
   const { begin, end, lastUri, playLast } = useAudio();
@@ -117,36 +118,37 @@ export default function DailyScreen({ route }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Back button */}
         <Pressable
           onPress={() => navigation.goBack()}
           style={({ pressed }) => [
             styles.backButton,
+            { backgroundColor: `${colors.primary}1A` },
             pressed && styles.backButtonPressed
           ]}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
         </Pressable>
 
         {/* Norwegian title (prominent) */}
-        <Text style={styles.header}>{daily?.title_no || daily?.title}</Text>
+        <Text style={[styles.header, { color: colors.primary }]}>{daily?.title_no || daily?.title}</Text>
       {daily?.title_no && (
-        <Text style={styles.headerHelper}>({daily?.title})</Text>
+        <Text style={[styles.headerHelper, { color: colors.textSecondary }]}>({daily?.title})</Text>
       )}
 
       {/* Norwegian description (main) */}
-      <Text style={styles.descriptionNorwegian}>{daily?.description_no || daily?.description}</Text>
+      <Text style={[styles.descriptionNorwegian, { color: colors.textPrimary }]}>{daily?.description_no || daily?.description}</Text>
       {daily?.description_no && (
-        <Text style={styles.descriptionHelper}>({daily?.description})</Text>
+        <Text style={[styles.descriptionHelper, { color: colors.textLight }]}>({daily?.description})</Text>
       )}
 
       {/* Target phrase section - Norwegian prominent */}
-      <View style={styles.targetSection}>
-        <Text style={styles.targetLabel}>SI PÅ NORSK:</Text>
-        <Text style={styles.targetPhrase}>"{daily?.target}"</Text>
-        <Text style={styles.targetTranslation}>({daily?.prompt})</Text>
+      <View style={[styles.targetSection, { backgroundColor: colors.backgroundAccent, borderLeftColor: colors.accent, shadowColor: colors.shadow }]}>
+        <Text style={[styles.targetLabel, { color: colors.accent }]}>SI PÅ NORSK:</Text>
+        <Text style={[styles.targetPhrase, { color: colors.accent }]}>"{daily?.target}"</Text>
+        <Text style={[styles.targetTranslation, { color: colors.textSecondary }]}>({daily?.prompt})</Text>
       </View>
 
       <View style={{ height: 16 }} />
@@ -157,7 +159,7 @@ export default function DailyScreen({ route }) {
           pressed && { opacity: 0.7 }
         ]}
       >
-        <Text style={styles.playTargetText}>Play target phrase</Text>
+        <Text style={[styles.playTargetText, { color: colors.accent }]}>Play target phrase</Text>
       </Pressable>
 
       <View style={{ flex: 1 }} />
@@ -170,13 +172,15 @@ export default function DailyScreen({ route }) {
           onPress={playLast}
           style={({ pressed }) => [
             styles.btnSecondary,
-            (!lastUri || loading) && styles.btnDisabled,
+            { backgroundColor: colors.backgroundTertiary, borderColor: colors.border },
+            (!lastUri || loading) && { backgroundColor: colors.disabledBackground, borderColor: colors.border },
             pressed && !loading && lastUri && styles.btnPressed
           ]}
         >
           <Text style={[
             styles.btnSecondaryText,
-            (!lastUri || loading) && styles.btnDisabledText
+            { color: colors.textPrimary },
+            (!lastUri || loading) && { color: colors.disabled }
           ]}>
             Play
           </Text>
@@ -186,13 +190,15 @@ export default function DailyScreen({ route }) {
           onPress={handleScore}
           style={({ pressed }) => [
             styles.btnPrimary,
-            (!lastUri || loading) && styles.btnDisabled,
+            { backgroundColor: colors.primary, shadowColor: colors.shadow },
+            (!lastUri || loading) && { backgroundColor: colors.disabledBackground, borderColor: colors.border },
             pressed && !loading && lastUri && styles.btnPressed
           ]}
         >
           <Text style={[
             styles.btnPrimaryText,
-            (!lastUri || loading) && styles.btnDisabledText
+            { color: colors.textWhite },
+            (!lastUri || loading) && { color: colors.disabled }
           ]}>
             {loading ? "Submitting..." : "Upload"}
           </Text>
@@ -202,28 +208,29 @@ export default function DailyScreen({ route }) {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Analyzing your pronunciation...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Analyzing your pronunciation...</Text>
         </View>
       )}
 
       {result && !loading && (
         <View style={[
           styles.card,
-          result.pass ? styles.cardSuccess : styles.cardWarning
+          { shadowColor: colors.shadow },
+          result.pass ? { backgroundColor: colors.successLight, borderColor: colors.success } : { backgroundColor: colors.warningLight, borderColor: colors.warning }
         ]}>
           <Text style={[
             styles.resultTitle,
-            result.pass ? styles.resultTitleSuccess : styles.resultTitleWarning
+            result.pass ? { color: colors.success } : { color: colors.warning }
           ]}>
             {result.pass ? "Bestått! (Passed!)" : "Fortsett å øve (Keep Practicing)"}
           </Text>
-          <Text style={styles.feedback}>{result.feedback}</Text>
+          <Text style={[styles.feedback, { color: colors.textPrimary }]}>{result.feedback}</Text>
           {result.pronunciation_score && (
-            <Text style={styles.score}>
+            <Text style={[styles.score, { color: colors.textSecondary }]}>
               Uttalescore: {result.pronunciation_score}/100
             </Text>
           )}
-          <Text style={styles.xp}>+{result.xp_gained} XP</Text>
+          <Text style={[styles.xp, { color: colors.success }]}>+{result.xp_gained} XP</Text>
         </View>
       )}
       </View>
@@ -234,12 +241,10 @@ export default function DailyScreen({ route }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: colors.background,
   },
   backButton: {
     alignSelf: 'flex-start',
@@ -247,65 +252,57 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(0, 40, 104, 0.1)',
   },
   backButtonPressed: {
     opacity: 0.7,
   },
   backButtonText: {
-    color: colors.primary,
     fontWeight: '600',
     fontSize: 14,
   },
   header: {
     fontSize: 26,
     fontWeight: "800",
-    color: colors.primary,
   },
   headerHelper: {
     fontSize: 14,
-    color: colors.textSecondary,
     fontStyle: "italic",
     marginTop: 2,
   },
   descriptionNorwegian: {
     fontSize: 16,
-    color: colors.textPrimary,
     marginTop: 12,
     fontWeight: "500",
     lineHeight: 24,
   },
   descriptionHelper: {
     fontSize: 13,
-    color: colors.textLight,
     fontStyle: "italic",
     marginTop: 4,
   },
   targetSection: {
     marginTop: 20,
-    backgroundColor: colors.backgroundAccent,
     padding: 18,
     borderRadius: 14,
     borderLeftWidth: 5,
-    borderLeftColor: colors.accent,
-    ...shadows.small,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   targetLabel: {
     fontSize: 13,
-    color: colors.accent,
     fontWeight: "800",
     marginBottom: 10,
     letterSpacing: 0.5,
   },
   targetPhrase: {
     fontSize: 24,
-    color: colors.accent,
     fontWeight: "700",
     lineHeight: 32,
   },
   targetTranslation: {
     fontSize: 14,
-    color: colors.textSecondary,
     fontStyle: "italic",
     marginTop: 10,
   },
@@ -313,7 +310,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   playTargetText: {
-    color: colors.accent,
     fontWeight: "600",
     fontSize: 15,
   },
@@ -324,37 +320,32 @@ const styles = StyleSheet.create({
   },
   btnPrimary: {
     padding: 14,
-    backgroundColor: colors.primary,
     borderRadius: 12,
     flex: 1,
     alignItems: "center",
-    ...shadows.small,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   btnPrimaryText: {
     fontWeight: "700",
-    color: colors.textWhite,
     fontSize: 15,
   },
   btnSecondary: {
     padding: 14,
-    backgroundColor: colors.backgroundTertiary,
     borderRadius: 12,
     flex: 1,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: colors.border,
   },
   btnSecondaryText: {
     fontWeight: "600",
-    color: colors.textPrimary,
     fontSize: 15,
   },
   btnDisabled: {
-    backgroundColor: colors.disabledBackground,
-    borderColor: colors.border,
   },
   btnDisabledText: {
-    color: colors.disabled,
   },
   btnPressed: {
     opacity: 0.7,
@@ -367,7 +358,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: colors.textSecondary,
     marginTop: 8,
   },
   card: {
@@ -375,15 +365,14 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 14,
     borderWidth: 2,
-    ...shadows.medium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   cardSuccess: {
-    backgroundColor: colors.successLight,
-    borderColor: colors.success,
   },
   cardWarning: {
-    backgroundColor: colors.warningLight,
-    borderColor: colors.warning,
   },
   resultTitle: {
     fontWeight: "700",
@@ -391,26 +380,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   resultTitleSuccess: {
-    color: colors.success,
   },
   resultTitleWarning: {
-    color: colors.warning,
   },
   feedback: {
     fontSize: 15,
-    color: colors.textPrimary,
     marginBottom: 8,
     lineHeight: 22,
   },
   score: {
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 4,
   },
   xp: {
     fontSize: 18,
     fontWeight: "800",
-    color: colors.success,
     marginTop: 10,
   },
 });

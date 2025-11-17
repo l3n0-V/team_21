@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, Pressable, SafeAreaView } from "react-native";
 import { useChallenges } from "../context/ChallengeContext";
 import { useNavigation } from "@react-navigation/native";
 import ChallengeCarousel from "../components/ChallengeCarousel";
-import { colors } from "../styles/colors";
+import { useTheme } from "../context/ThemeContext";
 
 export default function MonthlyChallengesScreen({ route }) {
   const { challenges } = useChallenges();
   const navigation = useNavigation();
+  const { colors } = useTheme();
 
   // If a specific challenge was passed, navigate directly to practice
   useEffect(() => {
@@ -43,22 +44,23 @@ export default function MonthlyChallengesScreen({ route }) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.backgroundSecondary }]}>
+      <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
         {/* Back button */}
         <Pressable
           onPress={() => navigation.goBack()}
           style={({ pressed }) => [
             styles.backButton,
+            { backgroundColor: `${colors.primary}1A` },
             pressed && styles.backButtonPressed,
           ]}
         >
-          <Text style={styles.backButtonText}>← Tilbake</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Tilbake</Text>
         </Pressable>
 
         {/* Screen Title */}
-        <Text style={styles.screenTitle}>Månedlige utfordringer</Text>
-        <Text style={styles.screenSubtitle}>
+        <Text style={[styles.screenTitle, { color: colors.primary }]}>Månedlige utfordringer</Text>
+        <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
           Velg en utfordring og øv uttalen din
         </Text>
 
@@ -74,14 +76,12 @@ export default function MonthlyChallengesScreen({ route }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.Create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.backgroundSecondary,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundSecondary,
   },
   backButton: {
     alignSelf: "flex-start",
@@ -91,26 +91,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
     borderRadius: 8,
-    backgroundColor: "rgba(0, 40, 104, 0.1)",
   },
   backButtonPressed: {
     opacity: 0.7,
   },
   backButtonText: {
-    color: colors.primary,
     fontWeight: "600",
     fontSize: 14,
   },
   screenTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: colors.primary,
     marginHorizontal: 16,
     marginBottom: 4,
   },
   screenSubtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
     marginHorizontal: 16,
     marginBottom: 24,
   },

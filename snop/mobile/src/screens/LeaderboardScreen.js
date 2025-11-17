@@ -4,11 +4,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import { USE_MOCK, API_BASE_URL } from "../../shared/config/endpoints";
-import { colors, shadows } from "../styles/colors";
+import { useTheme } from "../context/ThemeContext";
+import { shadows } from "../styles/colors";
 
 export default function LeaderboardScreen() {
   const { user, token } = useAuth();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [period, setPeriod] = useState('weekly');
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -98,52 +100,52 @@ export default function LeaderboardScreen() {
 
     return (
       <View style={[
-        styles.leaderboardItem,
-        isCurrentUser && styles.currentUserItem
+        { flexDirection: 'row', alignItems: 'center', padding: 14, marginBottom: 10, backgroundColor: colors.background, borderRadius: 14, borderWidth: 1, borderColor: colors.border, ...shadows.small },
+        isCurrentUser && { backgroundColor: colors.backgroundAccent, borderColor: colors.primary, borderWidth: 2 }
       ]}>
         <View style={[
-          styles.rankContainer,
+          { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.backgroundTertiary, alignItems: 'center', justifyContent: 'center' },
           rank <= 3 && { backgroundColor: medalStyle.backgroundColor }
         ]}>
           <Text style={[
-            styles.rankText,
-            rank <= 3 && styles.topRankText
+            { fontSize: 12, fontWeight: '800', color: colors.textSecondary },
+            rank <= 3 && { fontSize: 14, color: colors.textWhite }
           ]}>
             {medalStyle.text}
           </Text>
         </View>
 
-        <View style={styles.userInfo}>
+        <View style={{ flex: 1, marginLeft: 14 }}>
           <Text style={[
-            styles.userName,
-            isCurrentUser && styles.currentUserName
+            { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+            isCurrentUser && { color: colors.primary, fontWeight: '800' }
           ]}>
             {item.name}
             {isCurrentUser && ' (You)'}
           </Text>
         </View>
 
-        <View style={styles.xpContainer}>
-          <Text style={styles.xpText}>{item.xp}</Text>
-          <Text style={styles.xpLabel}>XP</Text>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: colors.primary }}>{item.xp}</Text>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textLight, marginTop: 2 }}>XP</Text>
         </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <LinearGradient
         colors={[colors.primary, "#003580"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+        style={{ paddingHorizontal: 20, paddingBottom: 20, paddingTop: insets.top + 16 }}
       >
-        <Text style={styles.title}>Toppliste</Text>
-        <Text style={styles.subtitle}>Konkurrer med andre brukere</Text>
+        <Text style={{ fontSize: 28, fontWeight: "900", color: colors.textWhite, marginBottom: 4 }}>Toppliste</Text>
+        <Text style={{ fontSize: 14, color: "rgba(255, 255, 255, 0.8)", fontWeight: "500" }}>Konkurrer med andre brukere</Text>
       </LinearGradient>
 
-      <View style={styles.header}>
+      <View style={{ padding: 16, paddingTop: 8, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.background }}>
         {/* Period Selector */}
         <View style={styles.periodSelector}>
           {['daily', 'weekly', 'monthly', 'all-time'].map((p) => (
@@ -151,14 +153,14 @@ export default function LeaderboardScreen() {
               key={p}
               onPress={() => setPeriod(p)}
               style={({ pressed }) => [
-                styles.periodButton,
-                period === p && styles.periodButtonActive,
+                { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 10, backgroundColor: colors.backgroundTertiary, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+                period === p && { backgroundColor: colors.primary, borderColor: colors.primary },
                 pressed && { opacity: 0.7 }
               ]}
             >
               <Text style={[
-                styles.periodButtonText,
-                period === p && styles.periodButtonTextActive
+                { fontSize: 11, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.3 },
+                period === p && { color: colors.textWhite }
               ]}>
                 {p === 'daily' ? 'Dag' : p === 'weekly' ? 'Uke' : p === 'monthly' ? 'Måned' : 'Totalt'}
               </Text>
@@ -168,28 +170,28 @@ export default function LeaderboardScreen() {
       </View>
 
       {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading leaderboard...</Text>
+          <Text style={{ marginTop: 12, fontSize: 16, color: colors.textSecondary }}>Loading leaderboard...</Text>
         </View>
       ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Failed to load leaderboard</Text>
-          <Pressable onPress={() => fetchLeaderboard()} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 16, color: colors.error, marginBottom: 16 }}>Failed to load leaderboard</Text>
+          <Pressable onPress={() => fetchLeaderboard()} style={{ backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10, ...shadows.small }}>
+            <Text style={{ color: colors.textWhite, fontWeight: '700' }}>Retry</Text>
           </Pressable>
         </View>
       ) : leaderboard.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No rankings yet</Text>
-          <Text style={styles.emptySubtext}>Complete challenges to appear on the leaderboard!</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 }}>No rankings yet</Text>
+          <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center' }}>Complete challenges to appear on the leaderboard!</Text>
         </View>
       ) : (
         <FlatList
           data={leaderboard}
           renderItem={renderLeaderboardItem}
           keyExtractor={(item) => item.uid}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={{ padding: 16 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -204,170 +206,8 @@ export default function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  headerGradient: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: colors.textWhite,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    fontWeight: "500",
-  },
-  header: {
-    padding: 16,
-    paddingTop: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.background,
-  },
   periodSelector: {
     flexDirection: 'row',
     gap: 8,
-  },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: colors.backgroundTertiary,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  periodButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  periodButtonText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  periodButtonTextActive: {
-    color: colors.textWhite,
-  },
-  listContent: {
-    padding: 16,
-  },
-  leaderboardItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    marginBottom: 10,
-    backgroundColor: colors.background,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.small,
-  },
-  currentUserItem: {
-    backgroundColor: colors.backgroundAccent,
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  rankContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: colors.backgroundTertiary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textSecondary,
-  },
-  topRankText: {
-    fontSize: 14,
-    color: colors.textWhite,
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  currentUserName: {
-    color: colors.primary,
-    fontWeight: '800',
-  },
-  xpContainer: {
-    alignItems: 'flex-end',
-  },
-  xpText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  xpLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textLight,
-    marginTop: 2,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: colors.error,
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    ...shadows.small,
-  },
-  retryButtonText: {
-    color: colors.textWhite,
-    fontWeight: '700',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
   },
 });

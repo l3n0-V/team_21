@@ -2,11 +2,13 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, shadows } from "../styles/colors";
+import { shadows } from "../styles/colors";
 import { usePerformance } from "../context/PerformanceContext";
+import { useTheme } from "../context/ThemeContext";
 
 export default function StatsScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const { performance } = usePerformance();
 
   const getTrendEmoji = (trend) => {
@@ -134,35 +136,35 @@ export default function StatsScreen() {
   const strengths = getStrengths();
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
       <LinearGradient
         colors={[colors.primary, "#003580"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+        style={{ paddingHorizontal: 20, paddingBottom: 20, paddingTop: insets.top + 16 }}
       >
-        <Text style={styles.title}>Statistikk</Text>
-        <Text style={styles.subtitle}>Din fremgang og resultater</Text>
+        <Text style={{ fontSize: 28, fontWeight: "900", color: colors.textWhite, marginBottom: 4 }}>Statistikk</Text>
+        <Text style={{ fontSize: 14, color: "rgba(255, 255, 255, 0.8)", fontWeight: "500" }}>Din fremgang og resultater</Text>
       </LinearGradient>
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Overall Performance */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Oversikt</Text>
+        <View style={{ marginTop: 8, marginBottom: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>Oversikt</Text>
         </View>
 
         <View style={styles.statsRow}>
-          <View style={[styles.statsCard, styles.halfCard]}>
-            <Text style={styles.statLabel}>Forsøk totalt</Text>
-            <Text style={styles.statValue}>{performance.overall.totalAttempts}</Text>
+          <View style={[styles.statsCard, styles.halfCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4, fontWeight: "600" }}>Forsøk totalt</Text>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: colors.primary }}>{performance.overall.totalAttempts}</Text>
           </View>
-          <View style={[styles.statsCard, styles.halfCard]}>
-            <Text style={styles.statLabel}>Suksessrate</Text>
-            <Text style={styles.statValue}>
+          <View style={[styles.statsCard, styles.halfCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4, fontWeight: "600" }}>Suksessrate</Text>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: colors.primary }}>
               {performance.overall.totalAttempts > 0
                 ? `${Math.round(performance.overall.successRate)}%`
                 : "0%"}
@@ -171,17 +173,17 @@ export default function StatsScreen() {
         </View>
 
         <View style={styles.statsRow}>
-          <View style={[styles.statsCard, styles.halfCard]}>
-            <Text style={styles.statLabel}>Snitt score</Text>
-            <Text style={styles.statValue}>
+          <View style={[styles.statsCard, styles.halfCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4, fontWeight: "600" }}>Snitt score</Text>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: colors.primary }}>
               {performance.overall.totalAttempts > 0
                 ? Math.round(performance.overall.avgScore)
                 : 0}
             </Text>
           </View>
-          <View style={[styles.statsCard, styles.halfCard]}>
-            <Text style={styles.statLabel}>Trend</Text>
-            <Text style={styles.statValue}>
+          <View style={[styles.statsCard, styles.halfCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4, fontWeight: "600" }}>Trend</Text>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: colors.primary }}>
               {getTrendEmoji(performance.recentTrend)}{" "}
               {getTrendText(performance.recentTrend)}
             </Text>
@@ -189,12 +191,12 @@ export default function StatsScreen() {
         </View>
 
         {/* Adaptive Level */}
-        <View style={styles.levelCard}>
-          <Text style={styles.levelLabel}>Ditt tilpassede nivå</Text>
-          <Text style={styles.levelValue}>
+        <View style={{ backgroundColor: `${colors.primary}1A`, padding: 20, borderRadius: 14, marginBottom: 16, alignItems: "center", borderWidth: 2, borderColor: colors.primary }}>
+          <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 4, fontWeight: "600" }}>Ditt tilpassede nivå</Text>
+          <Text style={{ fontSize: 28, fontWeight: "900", color: colors.primary, marginBottom: 4 }}>
             {getLevelText(performance.effectiveLevel)}
           </Text>
-          <Text style={styles.levelNote}>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, fontStyle: "italic" }}>
             Justeres automatisk basert på prestasjonene dine
           </Text>
         </View>
@@ -202,17 +204,17 @@ export default function StatsScreen() {
         {/* Recent Scores */}
         {performance.lastFiveScores.length > 0 && (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Siste resultater</Text>
+            <View style={{ marginTop: 8, marginBottom: 12 }}>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>Siste resultater</Text>
             </View>
-            <View style={styles.scoresContainer}>
+            <View style={{ flexDirection: "row", justifyContent: "space-around", backgroundColor: colors.background, padding: 16, borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: colors.border }}>
               {performance.lastFiveScores.map((score, index) => (
-                <View key={index} style={styles.scoreCircle}>
+                <View key={index} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: colors.backgroundSecondary, justifyContent: "center", alignItems: "center", borderWidth: 2, borderColor: colors.border }}>
                   <Text
                     style={[
-                      styles.scoreText,
-                      score >= 80 && styles.scoreHigh,
-                      score < 50 && styles.scoreLow,
+                      { fontSize: 16, fontWeight: "700", color: colors.text },
+                      score >= 80 && { color: "#10b981" },
+                      score < 50 && { color: "#ef4444" },
                     ]}
                   >
                     {score}
@@ -224,19 +226,19 @@ export default function StatsScreen() {
         )}
 
         {/* Performance by Type */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Etter oppgavetype</Text>
+        <View style={{ marginTop: 8, marginBottom: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>Etter oppgavetype</Text>
         </View>
 
         {Object.entries(performance.byType).map(([type, stats]) => (
-          <View key={type} style={styles.typeCard}>
+          <View key={type} style={{ backgroundColor: colors.background, padding: 16, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
             <View style={styles.typeHeader}>
-              <Text style={styles.typeName}>{getTypeText(type)}</Text>
-              <Text style={styles.typeAttempts}>{stats.attempts} forsøk</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>{getTypeText(type)}</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{stats.attempts} forsøk</Text>
             </View>
             {stats.attempts > 0 ? (
               <>
-                <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBarContainer, { backgroundColor: colors.backgroundSecondary }]}>
                   <View
                     style={[
                       styles.progressBar,
@@ -252,13 +254,13 @@ export default function StatsScreen() {
                     ]}
                   />
                 </View>
-                <Text style={styles.typeStats}>
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>
                   {Math.round((stats.successes / stats.attempts) * 100)}% riktig
                   • Snitt: {Math.round(stats.avgScore)}
                 </Text>
               </>
             ) : (
-              <Text style={styles.noData}>Ingen data ennå</Text>
+              <Text style={{ fontSize: 12, color: colors.textLight, fontStyle: "italic" }}>Ingen data ennå</Text>
             )}
           </View>
         ))}
@@ -266,19 +268,19 @@ export default function StatsScreen() {
         {/* Weak Areas */}
         {weakAreas.length > 0 && (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Områder å øve på</Text>
+            <View style={{ marginTop: 8, marginBottom: 12 }}>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>Områder å øve på</Text>
             </View>
-            <View style={styles.insightCard}>
+            <View style={{ backgroundColor: "#fef3c7", padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: "#fcd34d" }}>
               {weakAreas.map((area, index) => (
                 <View key={index} style={styles.insightRow}>
                   <Text style={styles.insightEmoji}>⚠️</Text>
-                  <Text style={styles.insightText}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text }}>
                     {area.name} ({area.rate}% riktig)
                   </Text>
                 </View>
               ))}
-              <Text style={styles.insightNote}>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontStyle: "italic", marginTop: 4 }}>
                 Vi prioriterer utfordringer i disse områdene for deg
               </Text>
             </View>
@@ -288,14 +290,14 @@ export default function StatsScreen() {
         {/* Strengths */}
         {strengths.length > 0 && (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Dine styrker</Text>
+            <View style={{ marginTop: 8, marginBottom: 12 }}>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>Dine styrker</Text>
             </View>
-            <View style={[styles.insightCard, styles.strengthCard]}>
+            <View style={{ backgroundColor: "#d1fae5", padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: "#6ee7b7" }}>
               {strengths.map((area, index) => (
                 <View key={index} style={styles.insightRow}>
                   <Text style={styles.insightEmoji}>⭐</Text>
-                  <Text style={styles.insightText}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text }}>
                     {area.name} ({area.rate}% riktig)
                   </Text>
                 </View>
@@ -305,10 +307,10 @@ export default function StatsScreen() {
         )}
 
         {performance.overall.totalAttempts === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🎯</Text>
-            <Text style={styles.emptyTitle}>Start din reise!</Text>
-            <Text style={styles.emptyText}>
+          <View style={{ alignItems: "center", padding: 32, backgroundColor: colors.background, borderRadius: 16, marginTop: 16 }}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🎯</Text>
+            <Text style={{ fontSize: 20, fontWeight: "700", color: colors.primary, marginBottom: 8 }}>Start din reise!</Text>
+            <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: "center", lineHeight: 20 }}>
               Fullfør noen utfordringer for å se statistikken din her.
               Systemet vil lære av prestasjonene dine og tilpasse
               utfordringene til ditt nivå.
@@ -321,150 +323,27 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundSecondary,
-  },
-  headerGradient: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: colors.textWhite,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    fontWeight: "500",
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  sectionHeader: {
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.text,
-  },
   statsRow: {
     flexDirection: "row",
     gap: 12,
     marginBottom: 12,
   },
   statsCard: {
-    backgroundColor: colors.background,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
     ...shadows.small,
   },
   halfCard: {
     flex: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-    fontWeight: "600",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: colors.primary,
-  },
-  levelCard: {
-    backgroundColor: "rgba(0, 40, 104, 0.1)",
-    padding: 20,
-    borderRadius: 14,
-    marginBottom: 16,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  levelLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-    fontWeight: "600",
-  },
-  levelValue: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  levelNote: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: "italic",
-  },
-  scoresContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  scoreCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.backgroundSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: colors.border,
-  },
-  scoreText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.text,
-  },
-  scoreHigh: {
-    color: "#10b981",
-  },
-  scoreLow: {
-    color: "#ef4444",
-  },
-  typeCard: {
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   typeHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 8,
   },
-  typeName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.text,
-  },
-  typeAttempts: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
   progressBarContainer: {
     height: 8,
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: 4,
     overflow: "hidden",
     marginBottom: 6,
@@ -472,27 +351,6 @@ const styles = StyleSheet.create({
   progressBar: {
     height: "100%",
     borderRadius: 4,
-  },
-  typeStats: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  noData: {
-    fontSize: 12,
-    color: colors.textLight,
-    fontStyle: "italic",
-  },
-  insightCard: {
-    backgroundColor: "#fef3c7",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#fcd34d",
-  },
-  strengthCard: {
-    backgroundColor: "#d1fae5",
-    borderColor: "#6ee7b7",
   },
   insightRow: {
     flexDirection: "row",
@@ -502,39 +360,5 @@ const styles = StyleSheet.create({
   insightEmoji: {
     fontSize: 16,
     marginRight: 8,
-  },
-  insightText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.text,
-  },
-  insightNote: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: "italic",
-    marginTop: 4,
-  },
-  emptyState: {
-    alignItems: "center",
-    padding: 32,
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    marginTop: 16,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
   },
 });

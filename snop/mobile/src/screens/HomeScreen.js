@@ -12,11 +12,12 @@ import * as Haptics from "expo-haptics";
 import Header from "../components/Header";
 import { useChallenges } from "../context/ChallengeContext";
 import { useNavigation } from "@react-navigation/native";
-import { colors, shadows } from "../styles/colors";
+import { useTheme } from "../context/ThemeContext";
 
 export default function HomeScreen() {
   const { challenges } = useChallenges();
   const nav = useNavigation();
+  const { colors } = useTheme();
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewData, setPreviewData] = useState(null);
 
@@ -32,15 +33,15 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.mainContainer}>
+    <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
       <Header />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Challenges</Text>
-      <Text style={styles.sectionSubtitle}>
+        <Text style={[styles.sectionTitle, { color: colors.primary }]}>Challenges</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
         Select a category to practice pronunciation
       </Text>
 
@@ -51,6 +52,7 @@ export default function HomeScreen() {
           count={challenges.daily.length}
           onPress={() => handlePress("Daily")}
           onLongPress={() => handleLongPress("Daily", challenges.daily)}
+          colors={colors}
         />
 
         <FeatureCard
@@ -59,6 +61,7 @@ export default function HomeScreen() {
           count={challenges.weekly.length}
           onPress={() => handlePress("Weekly")}
           onLongPress={() => handleLongPress("Weekly", challenges.weekly)}
+          colors={colors}
         />
 
         <FeatureCard
@@ -67,6 +70,7 @@ export default function HomeScreen() {
           count={challenges.monthly.length}
           onPress={() => handlePress("Monthly")}
           onLongPress={() => handleLongPress("Monthly", challenges.monthly)}
+          colors={colors}
         />
       </View>
       </ScrollView>
@@ -82,23 +86,23 @@ export default function HomeScreen() {
           style={styles.modalOverlay}
           onPress={() => setPreviewVisible(false)}
         >
-          <View style={styles.previewContainer}>
+          <View style={[styles.previewContainer, { backgroundColor: colors.background }]}>
             <View style={styles.previewHeader}>
-              <Text style={styles.previewTitle}>
+              <Text style={[styles.previewTitle, { color: colors.primary }]}>
                 {previewData?.type} challenges
               </Text>
               <Pressable
                 onPress={() => setPreviewVisible(false)}
                 style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Text style={[styles.closeButtonText, { color: colors.textSecondary }]}>✕</Text>
               </Pressable>
             </View>
 
             {previewData?.items.map((item, index) => (
-              <View key={item.id} style={styles.previewItem}>
-                <Text style={styles.previewItemNumber}>{index + 1}.</Text>
-                <Text style={styles.previewItemTitle}>
+              <View key={item.id} style={[styles.previewItem, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.previewItemNumber, { color: colors.textSecondary }]}>{index + 1}.</Text>
+                <Text style={[styles.previewItemTitle, { color: colors.textPrimary }]}>
                   {item.title_no || item.title}
                 </Text>
               </View>
@@ -111,9 +115,9 @@ export default function HomeScreen() {
                 else if (previewData?.type === "Weekly") handlePress("Weekly");
                 else if (previewData?.type === "Monthly") handlePress("Monthly");
               }}
-              style={styles.previewButton}
+              style={[styles.previewButton, { backgroundColor: colors.primary }]}
             >
-              <Text style={styles.previewButtonText}>See all</Text>
+              <Text style={[styles.previewButtonText, { color: colors.textWhite }]}>See all</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -122,7 +126,7 @@ export default function HomeScreen() {
   );
 }
 
-function FeatureCard({ title, icon, count, onPress, onLongPress }) {
+function FeatureCard({ title, icon, count, onPress, onLongPress, colors }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -154,25 +158,27 @@ function FeatureCard({ title, icon, count, onPress, onLongPress }) {
           styles.featureCard,
           {
             transform: [{ scale: scaleAnim }],
+            backgroundColor: colors.background,
+            shadowColor: colors.shadow,
           },
         ]}
       >
-        <View style={styles.iconContainer}>
+        <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}1A` }]}>
           <Text style={styles.cardIcon}>{icon}</Text>
         </View>
 
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{title}</Text>
-          <Text style={styles.cardCount}>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{title}</Text>
+          <Text style={[styles.cardCount, { color: colors.textLight }]}>
             {count} {count === 1 ? "challenge" : "challenges"}
           </Text>
         </View>
 
         <View style={styles.arrowContainer}>
-          <Text style={styles.arrow}>→</Text>
+          <Text style={[styles.arrow, { color: colors.primary }]}>→</Text>
         </View>
 
-        <Text style={styles.longPressHint}>Hold for preview</Text>
+        <Text style={[styles.longPressHint, { color: colors.textLight }]}>Hold for preview</Text>
       </Animated.View>
     </Pressable>
   );
@@ -181,7 +187,6 @@ function FeatureCard({ title, icon, count, onPress, onLongPress }) {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -193,27 +198,27 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: colors.primary,
     marginTop: 20,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
     marginBottom: 20,
   },
   cardsContainer: {
     gap: 16,
   },
   featureCard: {
-    backgroundColor: colors.background,
     borderRadius: 16,
     padding: 20,
     flexDirection: "row",
     alignItems: "center",
     position: "relative",
     overflow: "hidden",
-    ...shadows.medium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   iconContainer: {
     width: 56,
@@ -222,7 +227,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
-    backgroundColor: "rgba(0, 40, 104, 0.1)",
   },
   cardIcon: {
     fontSize: 28,
@@ -233,17 +237,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: colors.textPrimary,
     marginBottom: 2,
   },
   cardTitleEn: {
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 4,
   },
   cardCount: {
     fontSize: 13,
-    color: colors.textLight,
     fontWeight: "500",
   },
   arrowContainer: {
@@ -252,14 +253,12 @@ const styles = StyleSheet.create({
   arrow: {
     fontSize: 24,
     fontWeight: "600",
-    color: colors.primary,
   },
   longPressHint: {
     position: "absolute",
     bottom: 6,
     right: 12,
     fontSize: 10,
-    color: colors.textLight,
     fontStyle: "italic",
   },
   // Modal styles
@@ -269,7 +268,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   previewContainer: {
-    backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -284,42 +282,35 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: colors.primary,
   },
   closeButton: {
     padding: 8,
   },
   closeButtonText: {
     fontSize: 18,
-    color: colors.textSecondary,
   },
   previewItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   previewItemNumber: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.textSecondary,
     width: 30,
   },
   previewItemTitle: {
     fontSize: 16,
-    color: colors.textPrimary,
     flex: 1,
   },
   previewButton: {
-    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 20,
   },
   previewButtonText: {
-    color: colors.textWhite,
     fontWeight: "700",
     fontSize: 16,
   },
