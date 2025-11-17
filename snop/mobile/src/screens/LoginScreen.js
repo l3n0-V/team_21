@@ -108,10 +108,18 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.guestBtnText}>Fortsett som gjest (Testing)</Text>
         </Pressable>
 
-        <View style={styles.flagStripe}>
-          <View style={[styles.stripe, { backgroundColor: colors.accent }]} />
-          <View style={[styles.stripe, { backgroundColor: colors.background }]} />
-          <View style={[styles.stripe, { backgroundColor: colors.primary }]} />
+        <View style={styles.legalFooter}>
+          <Pressable onPress={() => console.log('Terms pressed')}>
+            <Text style={styles.legalLink}>Vilkår</Text>
+          </Pressable>
+          <Text style={styles.legalDivider}>·</Text>
+          <Pressable onPress={() => console.log('Privacy pressed')}>
+            <Text style={styles.legalLink}>Personvern</Text>
+          </Pressable>
+          <Text style={styles.legalDivider}>·</Text>
+          <Pressable onPress={() => console.log('Feedback pressed')}>
+            <Text style={styles.legalLink}>Tilbakemelding</Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -232,16 +240,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-  flagStripe: {
+  legalFooter: {
     flexDirection: "row",
-    width: 120,
-    height: 8,
-    borderRadius: 4,
-    overflow: "hidden",
-    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 40,
+    gap: 8,
   },
-  stripe: {
-    flex: 1,
+  legalLink: {
+    color: colors.textLight,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  legalDivider: {
+    color: colors.textLight,
+    fontSize: 12,
   },
 });

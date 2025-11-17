@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import { USE_MOCK, API_BASE_URL } from "../../shared/config/endpoints";
 import { colors, shadows } from "../styles/colors";
 
 export default function LeaderboardScreen() {
   const { user, token } = useAuth();
+  const insets = useSafeAreaInsets();
   const [period, setPeriod] = useState('weekly');
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -130,9 +133,17 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Leaderboard</Text>
+      <LinearGradient
+        colors={[colors.primary, "#003580"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+      >
+        <Text style={styles.title}>Toppliste</Text>
+        <Text style={styles.subtitle}>Konkurrer med andre brukere</Text>
+      </LinearGradient>
 
+      <View style={styles.header}>
         {/* Period Selector */}
         <View style={styles.periodSelector}>
           {['daily', 'weekly', 'monthly', 'all-time'].map((p) => (
@@ -149,7 +160,7 @@ export default function LeaderboardScreen() {
                 styles.periodButtonText,
                 period === p && styles.periodButtonTextActive
               ]}>
-                {p.charAt(0).toUpperCase() + p.slice(1).replace('-', ' ')}
+                {p === 'daily' ? 'Dag' : p === 'weekly' ? 'Uke' : p === 'monthly' ? 'Måned' : 'Totalt'}
               </Text>
             </Pressable>
           ))}
@@ -197,18 +208,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  headerGradient: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: colors.textWhite,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
+  },
   header: {
     padding: 16,
     paddingTop: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.primary,
-    marginBottom: 16,
   },
   periodSelector: {
     flexDirection: 'row',

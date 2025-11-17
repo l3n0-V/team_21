@@ -1,6 +1,6 @@
 # Flask-Firebase Backend Status Report
 **Project:** SNOP - Language Learning App
-**Last Updated:** November 16, 2025
+**Last Updated:** November 17, 2025
 **Backend Location:** `C:\Users\Eric\PycharmProjects\team_21\snop\Flask-Firebase\`
 **Recent Commits:** `6f582af`, `a096af4`, `cc74600` (November 11-16, 2025)
 
@@ -32,7 +32,7 @@ The Flask-Firebase backend has reached **FULL PRODUCTION READINESS** as of Novem
 - **Flask-CORS 4.0.1** - Cross-origin request handling
 - **Flask-Limiter 3.5.0** - Rate limiting middleware (PRODUCTION READY)
 - **Gunicorn 23.0.0** - Production WSGI server (CONFIGURED & READY)
-- **OpenAI Whisper API** - Speech-to-text transcription (with mock mode support)
+- **OpenAI Whisper (Self-Hosted)** - Speech-to-text transcription (FREE local model, no API costs)
 - **Python 3.13** with full dependency management via requirements.txt
 
 ### Authentication System
@@ -2930,3 +2930,57 @@ The backend is **100% ready for production deployment**. All infrastructure, sec
 **Next Milestone:** Audio upload completion + staging deployment
 **Deployment Ready:** YES - All production features implemented
 **Recent Updates:** Environment-based config, error handling, rate limiting, structured logging, Gunicorn config, and complete deployment documentation (November 13-16, 2025)
+
+---
+
+## November 17, 2025 Update - Self-Hosted Whisper
+
+### Major Change: Switched to Self-Hosted Whisper Model
+
+**What Changed:**
+- **Before:** Using OpenAI Whisper API (costs $0.006/minute)
+- **After:** Running Whisper model locally on backend server (FREE, no API costs)
+
+**Implementation Details:**
+- Modified `services_pronunciation.py` to use local Whisper model instead of API calls
+- Added `openai-whisper==20231117` to requirements.txt
+- Model is lazy-loaded (loads once on first use, stays in memory)
+- Uses "base" model (142MB) - good balance of speed and accuracy
+- Explicitly set Norwegian language (`language="no"`) for better transcription
+
+**New Function:** `get_whisper_model()`
+```python
+def get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        import whisper
+        _whisper_model = whisper.load_model("base")
+    return _whisper_model
+```
+
+**Benefits:**
+- **ZERO API COSTS** - No more OpenAI API charges
+- **No rate limits** - Process as many audio files as needed
+- **No API key required** - Removed dependency on OPENAI_API_KEY
+- **Better Norwegian support** - Can specify exact language for transcription
+- **Offline capable** - Works without internet after model is downloaded
+
+**Model Size Options:**
+- `tiny` - 39MB, fastest, less accurate
+- `base` - 142MB, good balance (CURRENT)
+- `small` - 461MB, better accuracy
+- `medium` - 1.5GB, high accuracy
+- `large` - 2.9GB, best accuracy (slow)
+
+**Setup Requirements:**
+1. Install FFmpeg on the server: `brew install ffmpeg` (Mac) or `apt install ffmpeg` (Linux)
+2. Run: `pip install openai-whisper`
+3. First request will download the model (~142MB) automatically
+4. Model stays cached in memory for fast subsequent transcriptions
+
+**Files Modified:**
+- `services_pronunciation.py` - Replaced API calls with local model usage
+- `requirements.txt` - Added openai-whisper dependency
+- `BACKEND_REPORT.md` - Updated Tech Stack section
+
+This change eliminates ALL pronunciation evaluation costs while maintaining the same accuracy as the OpenAI API.

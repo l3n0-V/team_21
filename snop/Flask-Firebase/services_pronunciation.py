@@ -1,12 +1,16 @@
 # services_pronunciation.py
 """
-Pronunciation evaluation service using OpenAI Whisper API.
+Pronunciation evaluation service using OpenAI Whisper (self-hosted).
 Handles speech-to-text transcription and accuracy scoring.
 """
 import os
 import requests
 from difflib import SequenceMatcher
 import re
+import tempfile
+
+# Global variable for lazy-loaded Whisper model
+_whisper_model = None
 
 
 def normalize_text(text):
@@ -109,9 +113,25 @@ def calculate_xp(similarity, difficulty=1):
     return int(xp * multiplier)
 
 
+def get_whisper_model():
+    """
+    Lazy-load the Whisper model (only loads once, stays in memory).
+    Uses 'base' model - good balance of speed and accuracy.
+    Other options: 'tiny' (fastest), 'small', 'medium', 'large' (most accurate)
+    """
+    global _whisper_model
+    if _whisper_model is None:
+        import whisper
+        print("Loading Whisper model (this may take a moment on first run)...")
+        # 'base' is a good balance. Use 'tiny' for faster but less accurate
+        _whisper_model = whisper.load_model("base")
+        print("Whisper model loaded!")
+    return _whisper_model
+
+
 def transcribe_audio_whisper(audio_url):
     """
-    Transcribe audio using OpenAI Whisper API.
+    Transcribe audio using local Whisper model (FREE, no API costs).
 
     Args:
         audio_url: str - URL or file path to audio file
@@ -122,41 +142,33 @@ def transcribe_audio_whisper(audio_url):
     Raises:
         Exception if transcription fails
     """
-    api_key = os.getenv("OPENAI_API_KEY")
-
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not set in environment variables")
+    model = get_whisper_model()
 
     # If audio_url is a local file path
     if audio_url.startswith("file://") or not audio_url.startswith("http"):
         # Remove file:// prefix if present
         file_path = audio_url.replace("file://", "")
 
-        with open(file_path, "rb") as audio_file:
-            response = requests.post(
-                "https://api.openai.com/v1/audio/transcriptions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                files={"file": audio_file},
-                data={"model": "whisper-1"}
-            )
+        # Transcribe directly from file
+        result = model.transcribe(file_path, language="no")  # "no" for Norwegian
+        return result["text"].strip()
     else:
-        # If it's a URL, download the file first
+        # If it's a URL (e.g., Firebase Storage), download first
         audio_response = requests.get(audio_url)
         audio_response.raise_for_status()
 
-        # Send to Whisper API
-        response = requests.post(
-            "https://api.openai.com/v1/audio/transcriptions",
-            headers={"Authorization": f"Bearer {api_key}"},
-            files={"file": ("audio.m4a", audio_response.content, "audio/m4a")},
-            data={"model": "whisper-1"}
-        )
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as tmp_file:
+            tmp_file.write(audio_response.content)
+            tmp_path = tmp_file.name
 
-    if response.status_code != 200:
-        raise Exception(f"Whisper API error: {response.status_code} - {response.text}")
-
-    result = response.json()
-    return result.get("text", "")
+        try:
+            # Transcribe from temp file
+            result = model.transcribe(tmp_path, language="no")  # "no" for Norwegian
+            return result["text"].strip()
+        finally:
+            # Clean up temp file
+            os.unlink(tmp_path)
 
 
 def evaluate_pronunciation(audio_url, target_phrase, difficulty=1):

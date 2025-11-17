@@ -3,8 +3,9 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import LeaderboardScreen from "../screens/LeaderboardScreen";
 import StatsScreen from "../screens/StatsScreen";
-import { Text, View, StyleSheet } from "react-native";
-import { colors, shadows } from "../styles/colors";
+import { View, StyleSheet, Animated } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../styles/colors";
 
 const Tab = createBottomTabNavigator();
 
@@ -13,62 +14,62 @@ export default function TabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 65,
-          shadowColor: colors.shadow,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
-          marginTop: 4,
-        },
+        tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textLight,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: styles.tabLabel,
       }}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Text style={[styles.icon, focused && styles.iconActive]}>HOME</Text>
+          tabBarIcon: ({ focused, color, size }) => (
+            <View style={styles.iconWrapper}>
+              {focused && <View style={styles.activeIndicator} />}
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={24}
+                color={color}
+              />
             </View>
           ),
-          tabBarLabel: "Home",
+          tabBarLabel: "Hjem",
         }}
       />
       <Tab.Screen
         name="Leaderboard"
         component={LeaderboardScreen}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Text style={[styles.icon, focused && styles.iconActive]}>TOP</Text>
+          tabBarIcon: ({ focused, color, size }) => (
+            <View style={styles.iconWrapper}>
+              {focused && <View style={styles.activeIndicator} />}
+              <Ionicons
+                name={focused ? "trophy" : "trophy-outline"}
+                size={24}
+                color={color}
+              />
             </View>
           ),
-          tabBarLabel: "Leaderboard",
+          tabBarLabel: "Toppliste",
         }}
       />
       <Tab.Screen
         name="Stats"
         component={StatsScreen}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-              <Text style={[styles.icon, focused && styles.iconActive]}>STATS</Text>
+          tabBarIcon: ({ focused, color, size }) => (
+            <View style={styles.iconWrapper}>
+              {focused && <View style={styles.activeIndicator} />}
+              <Ionicons
+                name={focused ? "stats-chart" : "stats-chart-outline"}
+                size={24}
+                color={color}
+              />
             </View>
           ),
-          tabBarLabel: "Stats",
+          tabBarLabel: "Statistikk",
         }}
       />
     </Tab.Navigator>
@@ -76,22 +77,34 @@ export default function TabNavigator() {
 }
 
 const styles = StyleSheet.create({
-  iconContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: "transparent",
+  tabBar: {
+    backgroundColor: colors.background,
+    borderTopWidth: 0,
+    paddingTop: 12,
+    paddingBottom: 28,
+    height: 85,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
   },
-  iconContainerActive: {
-    backgroundColor: 'rgba(0, 40, 104, 0.15)',
-  },
-  icon: {
+  tabLabel: {
     fontSize: 11,
-    fontWeight: "700",
-    color: colors.textLight,
-    letterSpacing: 0.5,
+    fontWeight: "600",
+    marginTop: 4,
   },
-  iconActive: {
-    color: colors.primary,
+  iconWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  activeIndicator: {
+    position: "absolute",
+    top: -8,
+    width: 32,
+    height: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 2,
   },
 });

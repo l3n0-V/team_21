@@ -1,86 +1,171 @@
 import React from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { useUserStats } from "../context/UserStatsContext";
-import { colors, shadows } from "../styles/colors";
+import { colors } from "../styles/colors";
 
 export default function Header() {
   const { stats, loading, error } = useUserStats();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.card}>
-      <View style={styles.contentContainer}>
-        <Text style={styles.name}>Welcome to SNOP</Text>
-        <Text style={styles.sub}>Earn snops by completing challenges</Text>
-        {stats.streak_days > 0 && (
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakText}>{stats.streak_days}-day streak!</Text>
+    <LinearGradient
+      colors={[colors.primary, "#003580"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.container, { paddingTop: insets.top + 16 }]}
+    >
+      {/* Decorative diagonal stripe */}
+      <View style={styles.diagonalStripe} />
+
+      <View style={styles.content}>
+        <View style={styles.leftSection}>
+          <Text style={styles.logo}>SNOP</Text>
+          <Text style={styles.greeting}>Velkommen tilbake!</Text>
+          <Text style={styles.subtitle}>Fullfør utfordringer for å tjene XP</Text>
+        </View>
+
+        <View style={styles.rightSection}>
+          <View style={styles.xpBadge}>
+            {loading ? (
+              <ActivityIndicator size="small" color={colors.textWhite} />
+            ) : error ? (
+              <Text style={styles.xpText}>--</Text>
+            ) : (
+              <>
+                <Text style={styles.xpValue}>{stats.xp_total}</Text>
+                <Text style={styles.xpLabel}>XP</Text>
+              </>
+            )}
           </View>
-        )}
+
+          {stats.streak_days > 0 && (
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakEmoji}>🔥</Text>
+              <Text style={styles.streakText}>{stats.streak_days}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      <View style={styles.pill}>
-        {loading ? (
-          <ActivityIndicator size="small" color={colors.textWhite} />
-        ) : error ? (
-          <Text style={styles.snopsText}>SNOPS: --</Text>
-        ) : (
-          <Text style={styles.snopsText}>SNOPS: {stats.xp_total}</Text>
-        )}
+      {/* Bottom wave decoration */}
+      <View style={styles.waveContainer}>
+        <View style={styles.wave} />
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginTop: 8,
-    padding: 20,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    ...shadows.large,
+  container: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    position: "relative",
+    overflow: "hidden",
   },
-  contentContainer: {
+  diagonalStripe: {
+    position: "absolute",
+    top: -50,
+    right: -100,
+    width: 300,
+    height: 200,
+    backgroundColor: colors.accent,
+    opacity: 0.15,
+    transform: [{ rotate: "-15deg" }],
+  },
+  content: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  leftSection: {
     flex: 1,
   },
-  name: {
-    fontWeight: "800",
-    fontSize: 20,
+  logo: {
+    fontSize: 32,
+    fontWeight: "900",
+    color: colors.textWhite,
+    letterSpacing: 4,
+    marginBottom: 8,
+  },
+  greeting: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.textWhite,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
+  },
+  rightSection: {
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  xpBadge: {
+    backgroundColor: colors.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    minWidth: 80,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  xpValue: {
+    fontSize: 24,
+    fontWeight: "900",
     color: colors.textWhite,
   },
-  sub: {
-    color: "rgba(255, 255, 255, 0.8)",
-    marginTop: 4,
-    fontSize: 14,
+  xpLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.9)",
+    marginTop: 2,
+  },
+  xpText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.textWhite,
   },
   streakBadge: {
-    backgroundColor: colors.warning,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    marginTop: 8,
-    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 4,
+  },
+  streakEmoji: {
+    fontSize: 16,
   },
   streakText: {
     color: colors.textWhite,
     fontWeight: "700",
-    fontSize: 13,
-  },
-  pill: {
-    backgroundColor: colors.accent,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    minWidth: 110,
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadows.medium,
-  },
-  snopsText: {
-    color: colors.textWhite,
-    fontWeight: "800",
     fontSize: 14,
+  },
+  waveContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 20,
+    overflow: "hidden",
+  },
+  wave: {
+    position: "absolute",
+    bottom: -10,
+    left: -20,
+    right: -20,
+    height: 30,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 100,
+    borderTopRightRadius: 100,
   },
 });

@@ -1,26 +1,45 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { colors } from "../styles/colors";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { colors, shadows } from "../styles/colors";
 
 export default function StatsScreen() {
+  const insets = useSafeAreaInsets();
+
   // Temporarily disabled chart due to react-native-chart-kit compatibility issues on iOS
   // To do: Re-enable when chart library is updated or use alternative
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Your Weekly Stats</Text>
-      <View style={styles.statsCard}>
-        <Text style={styles.statLabel}>Total XP Earned</Text>
-        <Text style={styles.statValue}>245</Text>
-      </View>
-      <View style={styles.statsCard}>
-        <Text style={styles.statLabel}>Current Streak</Text>
-        <Text style={styles.statValue}>7 days</Text>
-      </View>
-      <View style={styles.statsCard}>
-        <Text style={styles.statLabel}>Challenges Completed</Text>
-        <Text style={styles.statValue}>12</Text>
-      </View>
-      <Text style={styles.comingSoon}>Charts coming soon...</Text>
+      <LinearGradient
+        colors={[colors.primary, "#003580"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
+      >
+        <Text style={styles.title}>Statistikk</Text>
+        <Text style={styles.subtitle}>Din fremgang og resultater</Text>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.statsCard}>
+          <Text style={styles.statLabel}>Total XP Opptjent</Text>
+          <Text style={styles.statValue}>245</Text>
+        </View>
+        <View style={styles.statsCard}>
+          <Text style={styles.statLabel}>Nåværende Streak</Text>
+          <Text style={styles.statValue}>7 dager</Text>
+        </View>
+        <View style={styles.statsCard}>
+          <Text style={styles.statLabel}>Utfordringer Fullført</Text>
+          <Text style={styles.statValue}>12</Text>
+        </View>
+        <Text style={styles.comingSoon}>Grafer kommer snart...</Text>
+      </ScrollView>
     </View>
   );
 }
@@ -28,29 +47,48 @@ export default function StatsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: colors.background
+    backgroundColor: colors.background,
   },
-  header: {
-    fontSize: 24,
-    fontWeight: "800",
-    marginBottom: 20,
-    color: colors.primary
+  headerGradient: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: colors.textWhite,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "500",
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 32,
   },
   statsCard: {
-    backgroundColor: colors.backgroundSecondary,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: colors.background,
+    padding: 20,
+    borderRadius: 14,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.small,
   },
   statLabel: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 6,
+    fontWeight: "600",
   },
   statValue: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "800",
     color: colors.primary,
   },
   comingSoon: {

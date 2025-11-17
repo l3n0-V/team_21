@@ -1,6 +1,6 @@
 # React Native Mobile App Status Report
 **Project:** SNOP - Language Learning App (Frontend)
-**Date:** November 13, 2025 (Updated - Weekly/Monthly Submissions Complete!)
+**Date:** November 17, 2025 (Updated - UI/UX Overhaul Complete!)
 **Platform:** React Native (Expo SDK 54)
 **Target Devices:** iOS, Android, Mac, Windows
 
@@ -12,7 +12,35 @@
 
 **Testing Status:** 42 test cases executed, 35 passed (83% success rate), 7 failed due to missing backend endpoints.
 
-### 🚀 Latest Accomplishments (November 13, 2025 - Phase 2 Complete!)
+### 🚀 Latest Accomplishments (November 17, 2025 - UI/UX Overhaul!)
+
+**MAJOR UI/UX IMPROVEMENTS:**
+- ✅ **Splash Screen & Onboarding** - Professional app launch with SNOP logo, Norwegian tagline, 2.5s auto-navigation
+- ✅ **Login Screen Redesign** - Brand colors, Norwegian labels, guest login for testing, KeyboardAvoidingView
+- ✅ **HomeScreen Feature Cards** - Complete rewrite with animated cards, haptic feedback, long-press preview
+- ✅ **Challenge Carousel System** - Swipeable card carousel with difficulty badges and pagination dots
+- ✅ **Navigation Flow Updated** - Splash → Login → Tabs with proper auth flow structure
+- ✅ **Back Navigation** - Added "← Tilbake" buttons to all challenge screens with SafeAreaView
+- ✅ **Haptic Feedback** - expo-haptics integrated for tactile button responses
+- ✅ **Press Animations** - Spring-based scale/shadow animations on all Feature Cards
+- ✅ **Long-Press Preview Modal** - Slide-up modal showing first 3 challenges on long-hold
+- ✅ **Legal Footer** - Replaced flag stripe with Vilkår · Personvern · Tilbakemelding links
+- ✅ **Norwegian Localization** - All UI labels translated (Daglig, Ukentlig, Månedlig, Øv nå, etc.)
+- ✅ **Firebase Anonymous Auth** - Added ensureAuth() for Storage uploads
+
+**NEW FILES CREATED (November 17):**
+- `src/screens/SplashScreen.js` - App launch screen with branding
+- `src/components/ChallengeCarousel.js` - Reusable swipeable carousel
+- `src/screens/DailyChallengesScreen.js` - Carousel view for daily challenges
+- `src/screens/WeeklyChallengesScreen.js` - Carousel view for weekly challenges
+- `src/screens/MonthlyChallengesScreen.js` - Carousel view for monthly challenges
+
+**DEPENDENCIES ADDED:**
+- `expo-haptics` - For tactile feedback on interactions
+
+---
+
+### 🚀 Previous Accomplishments (November 13, 2025 - Phase 2 Complete!)
 
 **ALL CHALLENGE SUBMISSIONS IMPLEMENTED:**
 - ✅ **WeeklyScreen Complete** - Full submission flow with audio recording, Firebase upload, backend scoring, and results display
@@ -1287,20 +1315,84 @@ export function NotificationProvider({ children }) {
 #### 12. Visual Polish
 **Issues:**
 - No app icon (commented out in app.config.js)
-- No splash screen image
+- ~~No splash screen image~~ ✅ IMPLEMENTED (Nov 17) - SplashScreen.js created
 - Emoji icons in tabs (should use vector icons)
-- Hardcoded colors (should use theme)
-- Inconsistent spacing
-- No animations/transitions
-- No haptic feedback
+- ~~Hardcoded colors (should use theme)~~ ✅ IMPLEMENTED (Nov 17) - Brand colors system
+- ~~Inconsistent spacing~~ ✅ IMPROVED (Nov 17) - Consistent padding/margins
+- ~~No animations/transitions~~ ✅ IMPLEMENTED (Nov 17) - Spring animations on cards
+- ~~No haptic feedback~~ ✅ IMPLEMENTED (Nov 17) - expo-haptics integrated
 
 **Recommendations:**
 - Create app icon and splash screen
 - Use `@expo/vector-icons` for proper icons
 - Implement theme system (shared/theme.js)
-- Add micro-animations for button presses
-- Use `expo-haptics` for tactile feedback
+- ~~Add micro-animations for button presses~~ ✅ DONE
+- ~~Use `expo-haptics` for tactile feedback~~ ✅ DONE
 - Implement smooth transitions for challenges unlocking
+
+#### 12.5. Animated Circular Buttons (Future UI Enhancement) 🔮
+
+**Alternative to Feature Cards for HomeScreen**
+
+As the app's personality leans toward gamified learning, consider replacing or augmenting the current Feature Cards with animated circular buttons for a more playful, game-like feel.
+
+**Press Interactions:**
+- Circle contracts then bounces back (spring animation)
+- Ripple effect emanating from center
+- Icon spins 360° while navigating
+- Color fills from center outward
+- Particles burst from button edges
+
+**Long-hold Features:**
+- Ring animates to show "hold detected" progress indicator
+- Radial menu appears around button for quick actions
+- Preview cards fan out from the circle in an arc
+- Vibration pattern indicates different action types
+- Circle morphs into mini-carousel preview
+
+**Implementation Approach:**
+```javascript
+// Use react-native-reanimated for smooth animations
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated';
+
+// Particle burst effect on press
+const ParticleButton = ({ onPress }) => {
+  const scale = useSharedValue(1);
+  const rotation = useSharedValue(0);
+
+  const handlePress = () => {
+    scale.value = withSequence(
+      withTiming(0.8, { duration: 100 }),
+      withSpring(1, { damping: 4, stiffness: 400 })
+    );
+    rotation.value = withTiming(rotation.value + 360, { duration: 600 });
+    onPress();
+  };
+
+  // ... render animated circle with particles
+};
+```
+
+**Benefits:**
+- More engaging and playful than static cards
+- Emphasizes gamification aspect of language learning
+- Memorable user experience
+- Strong visual identity
+- Delightful micro-interactions
+
+**Trade-offs:**
+- More complex implementation
+- Higher performance overhead
+- May require react-native-reanimated library
+- Less conventional/professional appearance
+
+**Recommendation:** Consider this for v2.0 if user feedback indicates desire for more game-like interactions. Current Feature Cards are professional and scalable, but Circular Buttons could differentiate SNOP from competitors.
 
 ---
 
@@ -2329,5 +2421,5 @@ Both endpoints should follow the exact same pattern as the existing `/scoreDaily
 
 ---
 
-**This report was last updated on November 13, 2025 at the completion of Phase 2 with all challenge submission flows complete.**
+**This report was last updated on November 17, 2025 with major UI/UX improvements including Splash Screen, Login redesign, Challenge Carousel, and animated Feature Cards with haptic feedback.**
 
