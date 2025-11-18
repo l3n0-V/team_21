@@ -337,31 +337,48 @@ def score_daily():
     use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
 
     try:
+        print(f"[PRONUNCIATION] Processing challenge {challenge_id} for user {uid}")
+        print(f"[PRONUNCIATION] Audio URL: {audio_url[:100]}...")
+        print(f"[PRONUNCIATION] Target phrase: {target_phrase}")
+        print(f"[PRONUNCIATION] Using {'MOCK' if use_mock else 'REAL WHISPER'} evaluation")
+
         if use_mock:
             # Use mock evaluation for testing
             result = mock_evaluate_pronunciation(target_phrase, difficulty)
+            print(f"[PRONUNCIATION] Mock result: {result}")
         else:
-            # Use real Whisper API evaluation
+            # Use real Whisper evaluation
+            print(f"[PRONUNCIATION] Starting Whisper transcription...")
             result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
+            print(f"[PRONUNCIATION] Whisper result: transcription='{result.get('transcription')}', similarity={result.get('similarity')}, pass={result.get('pass')}")
 
         # Store the attempt in Firestore
+        print(f"[PRONUNCIATION] Storing attempt in Firestore...")
         add_attempt(uid, challenge_id, audio_url, result)
+        print(f"[PRONUNCIATION] Attempt stored successfully")
 
         # Check and award badges
         new_badges = check_and_award_badges(uid, result)
-
-        # Include new badges in response if any were earned
         if new_badges:
             result["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
+            print(f"[PRONUNCIATION] New badges awarded: {new_badges}")
 
+        print(f"[PRONUNCIATION] ✓ Success! XP: {result.get('xp_gained')}, Pass: {result.get('pass')}")
         return jsonify(result), 200
 
     except Exception as e:
-        # Log the error and return a generic error response
-        print(f"Error in score_daily: {e}")
+        # Detailed error logging
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"[PRONUNCIATION] ✗ ERROR in score_daily:")
+        print(f"[PRONUNCIATION] Error type: {type(e).__name__}")
+        print(f"[PRONUNCIATION] Error message: {str(e)}")
+        print(f"[PRONUNCIATION] Full traceback:\n{error_details}")
+
         return jsonify({
             "error": "Failed to evaluate pronunciation",
-            "details": str(e)
+            "details": str(e),
+            "type": type(e).__name__
         }), 500
 
 @app.post("/scoreWeekly")

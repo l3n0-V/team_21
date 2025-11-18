@@ -106,12 +106,37 @@ export default function DailyScreen({ route }) {
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
-        name: error.name
+        name: error.name,
+        response: error.response?.data
       });
-      Alert.alert(
-        "Submission Failed",
-        error.message || "Please check your internet connection and try again."
-      );
+
+      // Detailed error messages for debugging
+      let errorTitle = "Submission Failed";
+      let errorMessage = "An error occurred. Please try again.";
+
+      if (error.message.includes('Network request failed')) {
+        errorTitle = "No Connection";
+        errorMessage = "Cannot reach server. Is the backend running on http://localhost:5000?";
+      } else if (error.response?.status === 401) {
+        errorTitle = "Authentication Error";
+        errorMessage = "Your session expired. Please log in again.";
+      } else if (error.response?.status === 404) {
+        errorTitle = "Challenge Not Found";
+        errorMessage = "This challenge doesn't exist on the server.";
+      } else if (error.response?.status === 500) {
+        errorTitle = "Server Error";
+        errorMessage = error.response?.data?.details || "The server encountered an error processing your audio.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert(errorTitle, errorMessage, [
+        { text: "OK" },
+        {
+          text: "View Logs",
+          onPress: () => console.log('Full error:', JSON.stringify(error, null, 2))
+        }
+      ]);
     } finally {
       setLoading(false);
     }
