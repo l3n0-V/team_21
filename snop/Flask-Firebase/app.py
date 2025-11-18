@@ -1121,4 +1121,5 @@ def admin_generate_single_challenge():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Bind to 0.0.0.0 to accept connections from network/tunnel (works on all machines)
+    app.run(debug=True, host='0.0.0.0', port=5000)
