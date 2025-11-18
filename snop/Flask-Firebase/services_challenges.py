@@ -328,13 +328,26 @@ def get_challenges_for_user_level(uid):
         "pronunciation": []
     }
 
+    # Track challenge IDs to prevent duplicates
+    seen_ids = {
+        "irl": set(),
+        "listening": set(),
+        "fill_blank": set(),
+        "multiple_choice": set(),
+        "pronunciation": set()
+    }
+
     for level in available_levels:
         level_challenges = get_challenges_by_cefr_level(level)
 
         for challenge in level_challenges:
             challenge_type = challenge.get("type", "")
-            if challenge_type in all_challenges:
+            challenge_id = challenge.get("id", "")
+
+            # Only add if we haven't seen this challenge ID before
+            if challenge_type in all_challenges and challenge_id not in seen_ids[challenge_type]:
                 all_challenges[challenge_type].append(challenge)
+                seen_ids[challenge_type].add(challenge_id)
 
     return all_challenges
 

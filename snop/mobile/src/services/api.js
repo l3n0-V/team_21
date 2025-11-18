@@ -133,6 +133,148 @@ const MockAdapter = {
         { uid: 'user9', name: 'Ryan Taylor', xp: 120 }
       ]
     };
+  },
+
+  // ===== CEFR ENDPOINTS =====
+
+  async getTodaysChallenges(token) {
+    await delay(500);
+    console.log('MockAdapter.getTodaysChallenges called');
+    // Filter challenges by type and return with completion status
+    const irlChallenges = feed.filter(c => c.type === 'irl').slice(0, 2);
+    const listeningChallenges = feed.filter(c => c.type === 'listening').slice(0, 5);
+    const fillBlankChallenges = feed.filter(c => c.type === 'fill_blank').slice(0, 5);
+    const multipleChoiceChallenges = feed.filter(c => c.type === 'multiple_choice').slice(0, 5);
+
+    return {
+      date: new Date().toISOString().split('T')[0],
+      user_level: 'A1',
+      challenges: {
+        irl: {
+          available: irlChallenges,
+          completed_today: 0,
+          limit: 1,
+          can_complete_more: true
+        },
+        listening: {
+          available: listeningChallenges,
+          completed_today: 0,
+          limit: 3,
+          can_complete_more: true
+        },
+        fill_blank: {
+          available: fillBlankChallenges,
+          completed_today: 0,
+          limit: 3,
+          can_complete_more: true
+        },
+        multiple_choice: {
+          available: multipleChoiceChallenges,
+          completed_today: 0,
+          limit: 3,
+          can_complete_more: true
+        }
+      }
+    };
+  },
+
+  async submitChallengeAnswer(token, challengeId, userAnswer) {
+    await delay(500);
+    console.log('MockAdapter.submitChallengeAnswer called', { challengeId, userAnswer });
+
+    // Simulate 70% correct rate
+    const correct = Math.random() > 0.3;
+
+    return {
+      success: true,
+      correct: correct,
+      xp_gained: correct ? 10 : 5,
+      feedback: correct ? 'Correct! Well done!' : 'Not quite. Try again!',
+      level_progress: {
+        current_level: 'A1',
+        completed: 6,
+        required: 20,
+        percentage: 30
+      }
+    };
+  },
+
+  async submitIRLChallenge(token, challengeId, photoBase64, options = {}) {
+    await delay(800);
+    console.log('MockAdapter.submitIRLChallenge called', { challengeId, hasPhoto: !!photoBase64, options });
+
+    return {
+      success: true,
+      verified: true,
+      xp_gained: 50,
+      photo_url: 'https://example.com/mock-photo.jpg',
+      feedback: 'Great job on your IRL challenge!',
+      completion_status: {
+        irl_completed_today: 1,
+        irl_limit: 1,
+        can_complete_more: false
+      }
+    };
+  },
+
+  async getUserProgress(token) {
+    await delay(500);
+    console.log('MockAdapter.getUserProgress called');
+
+    return {
+      current_level: 'A1',
+      progress: {
+        A1: {
+          name: 'Beginner',
+          completed: 6,
+          required: 20,
+          percentage: 30,
+          unlocked: true,
+          is_current: true
+        },
+        A2: {
+          name: 'Elementary',
+          completed: 0,
+          required: 20,
+          percentage: 0,
+          unlocked: false,
+          unlock_message: 'Complete 14 more A1 challenges to unlock A2'
+        },
+        B1: {
+          name: 'Intermediate',
+          completed: 0,
+          required: 25,
+          percentage: 0,
+          unlocked: false,
+          unlock_message: 'Complete A2 to unlock B1'
+        },
+        B2: {
+          name: 'Upper Intermediate',
+          completed: 0,
+          required: 25,
+          percentage: 0,
+          unlocked: false,
+          unlock_message: 'Complete B1 to unlock B2'
+        },
+        C1: {
+          name: 'Advanced',
+          completed: 0,
+          required: 30,
+          percentage: 0,
+          unlocked: false,
+          unlock_message: 'Complete B2 to unlock C1'
+        },
+        C2: {
+          name: 'Mastery',
+          completed: 0,
+          required: 30,
+          percentage: 0,
+          unlocked: false,
+          unlock_message: 'Complete C1 to unlock C2'
+        }
+      },
+      recent_completions: []
+    };
   }
 };
 
@@ -223,6 +365,61 @@ const HttpAdapter = {
   },
   async getLeaderboard(period = 'weekly') {
     const res = await fetch(`${API_BASE_URL}/leaderboard?period=${period}`);
+    return res.json();
+  },
+
+  // ===== CEFR ENDPOINTS =====
+
+  async getTodaysChallenges(token) {
+    const res = await fetch(`${API_BASE_URL}/api/challenges/today`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return res.json();
+  },
+
+  async submitChallengeAnswer(token, challengeId, userAnswer) {
+    const res = await fetch(`${API_BASE_URL}/api/challenges/submit`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        user_answer: userAnswer
+      })
+    });
+    return res.json();
+  },
+
+  async submitIRLChallenge(token, challengeId, photoBase64, options = {}) {
+    const res = await fetch(`${API_BASE_URL}/api/challenges/irl/verify`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        photo_base64: photoBase64,
+        ...options // gps_lat, gps_lng, text_description
+      })
+    });
+    return res.json();
+  },
+
+  async getUserProgress(token) {
+    const res = await fetch(`${API_BASE_URL}/api/user/progress`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
     return res.json();
   }
 };

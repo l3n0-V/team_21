@@ -14,6 +14,7 @@ import OnboardingScreen from "../screens/OnboardingScreen";
 import ListeningChallengeScreen from "../screens/ListeningChallengeScreen";
 import FillBlankChallengeScreen from "../screens/FillBlankChallengeScreen";
 import MultipleChoiceChallengeScreen from "../screens/MultipleChoiceChallengeScreen";
+import IRLChallengeScreen from "../screens/IRLChallengeScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +38,7 @@ export default function AppNavigator() {
       <Stack.Screen name="ListeningChallenge" component={ListeningChallengeScreen} />
       <Stack.Screen name="FillBlankChallenge" component={FillBlankChallengeScreen} />
       <Stack.Screen name="MultipleChoiceChallenge" component={MultipleChoiceChallengeScreen} />
+      <Stack.Screen name="IRLChallenge" component={IRLChallengeScreen} />
     </Stack.Navigator>
   );
 }

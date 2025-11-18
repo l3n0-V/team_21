@@ -1,6 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import HomeScreen from "../screens/HomeScreen";
+import TodayScreen from "../screens/TodayScreen";
 import LeaderboardScreen from "../screens/LeaderboardScreen";
 import StatsScreen from "../screens/StatsScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -36,8 +36,8 @@ export default function TabNavigator() {
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="Today"
+        component={TodayScreen}
         options={{
           tabBarIcon: ({ focused, color, size }) => (
             <View style={styles.iconWrapper}>
@@ -45,13 +45,13 @@ export default function TabNavigator() {
                 <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]} />
               )}
               <Ionicons
-                name={focused ? "home" : "home-outline"}
+                name={focused ? "calendar" : "calendar-outline"}
                 size={24}
                 color={color}
               />
             </View>
           ),
-          tabBarLabel: "Home",
+          tabBarLabel: "Today",
         }}
       />
       <Tab.Screen

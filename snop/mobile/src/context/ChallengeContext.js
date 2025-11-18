@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { Alert } from "react-native";
 import challengesSeed from "../data/challenges.json";
 import { api } from "../services/api";
 import { USE_MOCK } from "../../shared/config/endpoints";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from 'expo-file-system';
 import {
   filterChallengesByProfile,
   scoreChallenges,
@@ -20,6 +22,10 @@ export function ChallengeProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
   const [performanceData, setPerformanceData] = useState(null);
+
+  // CEFR-specific state
+  const [todaysChallenges, setTodaysChallenges] = useState(null);
+  const [userProgress, setUserProgress] = useState(null);
 
   // Load user profile from AsyncStorage
   const loadUserProfile = async () => {
@@ -103,6 +109,103 @@ export function ChallengeProvider({ children }) {
     setFilteredChallenges(filtered);
   }, [challenges, applyFiltering]);
 
+  // ===== CEFR METHODS =====
+
+  // Load today's challenges from backend
+  const loadTodaysChallenges = useCallback(async (token) => {
+    if (!token) {
+      console.warn("No token provided to loadTodaysChallenges");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await api.getTodaysChallenges(token);
+      setTodaysChallenges(data);
+      console.log("Today's challenges loaded:", data);
+    } catch (error) {
+      console.error("Failed to load today's challenges:", error);
+      Alert.alert("Error", "Failed to load today's challenges");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load user CEFR progress
+  const loadUserProgress = useCallback(async (token) => {
+    if (!token) {
+      console.warn("No token provided to loadUserProgress");
+      return;
+    }
+
+    try {
+      const data = await api.getUserProgress(token);
+      setUserProgress(data);
+      console.log("User progress loaded:", data);
+    } catch (error) {
+      console.error("Failed to load user progress:", error);
+    }
+  }, []);
+
+  // Submit challenge answer (listening, fill_blank, multiple_choice)
+  const submitChallenge = useCallback(async (token, challengeId, userAnswer) => {
+    if (!token) throw new Error("Authentication required");
+
+    try {
+      const result = await api.submitChallengeAnswer(token, challengeId, userAnswer);
+
+      // Reload today's challenges to update completion status
+      await loadTodaysChallenges(token);
+
+      // Show level-up notification if applicable
+      if (result.level_up) {
+        Alert.alert(
+          'Level Up! 🎉',
+          `Congratulations! You've advanced to ${result.new_level}!`,
+          [{ text: 'Awesome!', onPress: () => {} }]
+        );
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Failed to submit challenge:", error);
+      throw error;
+    }
+  }, [loadTodaysChallenges]);
+
+  // Submit IRL challenge with photo
+  const submitIRLChallenge = useCallback(async (token, challengeId, photoUri, options = {}) => {
+    if (!token) throw new Error("Authentication required");
+    if (!photoUri) throw new Error("Photo required");
+
+    try {
+      // Convert photo URI to base64
+      const base64 = await FileSystem.readAsStringAsync(photoUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const photoBase64 = `data:image/jpeg;base64,${base64}`;
+
+      const result = await api.submitIRLChallenge(token, challengeId, photoBase64, options);
+
+      // Reload challenges
+      await loadTodaysChallenges(token);
+
+      // Show level-up notification if applicable
+      if (result.level_up) {
+        Alert.alert(
+          'Level Up! 🎉',
+          `Congratulations! You've advanced to ${result.new_level}!`,
+          [{ text: 'Awesome!', onPress: () => {} }]
+        );
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Failed to submit IRL challenge:", error);
+      throw error;
+    }
+  }, [loadTodaysChallenges]);
+
   useEffect(() => {
     const loadChallenges = async () => {
       setLoading(true);
@@ -169,6 +272,14 @@ export function ChallengeProvider({ children }) {
     refreshFiltering,
     loadUserProfile,
     loadPerformanceData,
+
+    // CEFR state and methods
+    todaysChallenges,
+    userProgress,
+    loadTodaysChallenges,
+    loadUserProgress,
+    submitChallenge,
+    submitIRLChallenge,
   };
 
   return <ChallengeContext.Provider value={value}>{children}</ChallengeContext.Provider>;

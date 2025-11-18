@@ -6,6 +6,7 @@ Tracks which challenges users complete each day and enforces daily limits.
 from firebase_config import db
 from datetime import datetime, timezone
 from services_cefr import get_cefr_config
+from google.cloud import firestore
 
 
 def get_current_utc_date():
@@ -211,7 +212,7 @@ def get_user_recent_completions(uid, limit=10):
     progress_ref = db.collection("users").document(uid).collection("daily_progress")
 
     # Get all daily progress documents, ordered by date descending
-    docs = progress_ref.order_by("date", direction=db.collection.DESCENDING).limit(7).stream()
+    docs = progress_ref.order_by("date", direction=firestore.Query.DESCENDING).limit(7).stream()
 
     all_completions = []
 
