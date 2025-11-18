@@ -696,5 +696,153 @@ def get_all_badge_definitions():
     """Get all badge definitions."""
     return jsonify(get_all_badges()), 200
 
+
+########################################
+""" AI Challenge Generation Endpoints """
+
+from services_ai_generation import (
+    generate_and_save_challenges,
+    generate_pronunciation_challenge,
+    generate_listening_challenge
+)
+
+
+@app.post("/admin/generate-challenges")
+@require_auth
+def admin_generate_challenges():
+    """
+    Generate challenges using AI (Ollama).
+    Requires authentication.
+
+    Body:
+        {
+            "frequency": "daily|weekly|monthly",
+            "count": 5,
+            "difficulty_mix": {"1": 3, "2": 1, "3": 1},  // optional
+            "topic_mix": ["cafe", "restaurant"],          // optional
+            "save_to_db": true                            // optional, default true
+        }
+
+    Returns:
+        {
+            "challenges": [...],
+            "saved_ids": [...],
+            "success_count": 5,
+            "failure_count": 0
+        }
+    """
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        if not data or 'frequency' not in data:
+            raise ValidationError("Missing required field: frequency")
+
+        frequency = data['frequency']
+        if frequency not in ['daily', 'weekly', 'monthly']:
+            raise ValidationError("frequency must be 'daily', 'weekly', or 'monthly'")
+
+        count = data.get('count', 5)
+        if not isinstance(count, int) or count < 1 or count > 20:
+            raise ValidationError("count must be an integer between 1 and 20")
+
+        # Parse difficulty_mix (convert string keys to int)
+        difficulty_mix = data.get('difficulty_mix')
+        if difficulty_mix:
+            difficulty_mix = {int(k): v for k, v in difficulty_mix.items()}
+
+        topic_mix = data.get('topic_mix')
+        save_to_db = data.get('save_to_db', True)
+
+        logger.info(f"Generating {count} {frequency} challenges...")
+
+        # Generate challenges
+        result = generate_and_save_challenges(
+            frequency=frequency,
+            count=count,
+            difficulty_mix=difficulty_mix,
+            topic_mix=topic_mix,
+            save_to_db=save_to_db
+        )
+
+        logger.info(f"Generated {result['success_count']} challenges, saved {len(result['saved_ids'])}")
+
+        return jsonify(result), 200
+
+    except ValidationError as e:
+        logger.warning(f"Validation error: {e.message}")
+        return jsonify({"error": e.message}), e.status_code
+    except Exception as e:
+        logger.error(f"Error generating challenges: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/admin/generate-single")
+@require_auth
+def admin_generate_single_challenge():
+    """
+    Generate a single challenge for testing/preview.
+
+    Body:
+        {
+            "type": "pronunciation|listening",
+            "difficulty": 1-3,
+            "topic": "cafe",                    // optional
+            "frequency": "daily|weekly|monthly",
+            "save_to_db": false                 // optional, default false
+        }
+
+    Returns:
+        Generated challenge object
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            raise ValidationError("Request body is required")
+
+        challenge_type = data.get('type', 'pronunciation')
+        if challenge_type not in ['pronunciation', 'listening']:
+            raise ValidationError("type must be 'pronunciation' or 'listening'")
+
+        difficulty = data.get('difficulty', 1)
+        if difficulty not in [1, 2, 3]:
+            raise ValidationError("difficulty must be 1, 2, or 3")
+
+        topic = data.get('topic')
+        frequency = data.get('frequency', 'daily')
+        save_to_db = data.get('save_to_db', False)
+
+        logger.info(f"Generating single {challenge_type} challenge (difficulty {difficulty})...")
+
+        # Generate challenge
+        if challenge_type == 'pronunciation':
+            challenge = generate_pronunciation_challenge(difficulty, topic, frequency)
+        else:
+            challenge = generate_listening_challenge(difficulty, topic, frequency)
+
+        # Optionally save to database
+        saved_id = None
+        if save_to_db:
+            from services_challenges import add_challenge
+            saved_id = add_challenge(challenge)
+            logger.info(f"Saved challenge to Firestore with ID: {saved_id}")
+
+        result = {
+            "challenge": challenge,
+            "saved": save_to_db,
+            "saved_id": saved_id
+        }
+
+        return jsonify(result), 200
+
+    except ValidationError as e:
+        logger.warning(f"Validation error: {e.message}")
+        return jsonify({"error": e.message}), e.status_code
+    except Exception as e:
+        logger.error(f"Error generating single challenge: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
