@@ -126,7 +126,7 @@ Generate the challenge now:"""
             messages=[
                 {
                     'role': 'system',
-                    'content': 'You are a Norwegian language teaching expert. You create educational challenges for learners. Always respond with valid JSON only, no extra text or formatting.'
+                    'content': 'You are a JSON generator. You ONLY output valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON object.'
                 },
                 {
                     'role': 'user',
@@ -134,15 +134,14 @@ Generate the challenge now:"""
                 }
             ],
             options={
-                'temperature': 0.8,  # Add creativity
+                'temperature': 0.3,  # Lower temperature for consistent JSON
             }
         )
 
         # Extract response content
-        content = response['message']['content']
+        content = response['message']['content'].strip()
 
-        # Remove markdown code blocks if present
-        content = content.strip()
+        # Remove markdown code blocks
         if content.startswith('```json'):
             content = content[7:]
         if content.startswith('```'):
@@ -151,12 +150,25 @@ Generate the challenge now:"""
             content = content[:-3]
         content = content.strip()
 
-        # Clean up common JSON errors
+        # Extract JSON from any surrounding text
         import re
+        # Find the first { and last } to extract just the JSON object
+        first_brace = content.find('{')
+        last_brace = content.rfind('}')
+        if first_brace != -1 and last_brace != -1:
+            content = content[first_brace:last_brace + 1]
+
+        # Clean up common JSON errors
         # Remove trailing commas before closing brackets/braces
         content = re.sub(r',(\s*[}\]])', r'\1', content)
         # Remove markdown bold markers that might appear
         content = content.replace('**', '')
+        # Remove any newlines in string values that break JSON
+        content = re.sub(r'(?<!\\)\n', ' ', content)
+
+        # Fix incomplete JSON (missing closing brace)
+        if content.count('{') > content.count('}'):
+            content += '}'
 
         # Parse JSON
         challenge_data = json.loads(content)
@@ -197,52 +209,36 @@ def generate_listening_challenge(difficulty=1, topic=None, frequency="daily"):
 
     level = LEVELS.get(difficulty, "beginner")
 
-    prompt = f"""Generate a Norwegian listening comprehension challenge in valid JSON format.
+    prompt = f"""You must generate ONLY valid JSON. No explanations, no markdown, no code blocks.
 
-VISUAL HIERARCHY (for display):
-1. Norwegian title (title_no) - Bold, primary color, most prominent
-2. English title (title) - Smaller, lighter color, in parentheses (for context)
-3. Audio text (audio_text) - What they hear in Norwegian
-4. Options - 4 English translations to choose from
+Topic: {topic}
+Difficulty: {difficulty} (1=beginner, 2=intermediate, 3=advanced)
+Frequency: {frequency}
 
-DIFFICULTY AFFECTS:
-- Difficulty {difficulty}: {"Short 1-3 word phrases" if difficulty == 1 else "4-6 word sentences" if difficulty == 2 else "7+ word complex sentences"}
-- Vocabulary: {"common everyday words" if difficulty == 1 else "mix of common and specific terms" if difficulty == 2 else "advanced vocabulary"}
-- Similar-sounding wrong options: {"very different meanings" if difficulty == 1 else "somewhat related meanings" if difficulty == 2 else "subtle differences requiring careful listening"}
-
-Requirements:
-- Type: listening
-- Topic: {topic}
-- Frequency: {frequency}
-- audio_text = Norwegian phrase (what they hear - will use text-to-speech)
-- Create 4 English translation options (only 1 correct)
-- Make wrong options plausible but distinguishable
-- Both languages ALWAYS included
-- Culturally relevant to Norway
+Create a Norwegian listening comprehension challenge where:
+- audio_text is a Norwegian phrase ({"1-3 words" if difficulty == 1 else "4-6 words" if difficulty == 2 else "7+ words"})
+- 4 English translation options (only 1 correct, 3 plausible wrong answers)
 - Use Norwegian Bokmål
+- Culturally relevant to Norway
 
-IMPORTANT: Respond ONLY with valid JSON, no markdown formatting, no code blocks, no extra text.
-
-Required JSON format:
+EXAMPLE OUTPUT:
 {{
   "type": "listening",
-  "title": "English description of what they're listening for",
-  "title_no": "Norsk beskrivelse (samme mening)",
+  "title": "Understanding a greeting",
+  "title_no": "Forstå en hilsen",
   "description": "Listen and select the correct translation",
   "description_no": "Lytt og velg riktig oversettelse",
-  "audio_text": "Norsk setning som blir uttalt",
-  "options": ["Correct English translation", "Plausible wrong answer 1", "Plausible wrong answer 2", "Plausible wrong answer 3"],
+  "audio_text": "God morgen",
+  "options": ["Good morning", "Good evening", "Good night", "Good day"],
   "correct_answer": 0,
-  "difficulty": {difficulty},
-  "frequency": "{frequency}",
-  "level": "{level}",
+  "difficulty": 1,
+  "frequency": "daily",
+  "level": "beginner",
   "age_group": "all",
-  "topic": "{topic}"
+  "topic": "social"
 }}
 
-IMPORTANT: Shuffle the options array so correct answer is not always at index 0, and update correct_answer index accordingly.
-
-Generate the challenge now:"""
+Generate similar valid JSON for topic "{topic}" and difficulty {difficulty}. Output ONLY the JSON object:"""
 
     try:
         # Call Ollama API
@@ -251,7 +247,7 @@ Generate the challenge now:"""
             messages=[
                 {
                     'role': 'system',
-                    'content': 'You are a Norwegian language teaching expert. You create listening comprehension challenges. Always respond with valid JSON only, no extra text or formatting.'
+                    'content': 'You are a JSON generator. You ONLY output valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON object.'
                 },
                 {
                     'role': 'user',
@@ -259,12 +255,14 @@ Generate the challenge now:"""
                 }
             ],
             options={
-                'temperature': 0.8,
+                'temperature': 0.3,  # Lower temperature for consistent JSON
             }
         )
 
         # Extract and clean response
         content = response['message']['content'].strip()
+
+        # Remove markdown code blocks
         if content.startswith('```json'):
             content = content[7:]
         if content.startswith('```'):
@@ -273,12 +271,25 @@ Generate the challenge now:"""
             content = content[:-3]
         content = content.strip()
 
-        # Clean up common JSON errors
+        # Extract JSON from any surrounding text
         import re
+        # Find the first { and last } to extract just the JSON object
+        first_brace = content.find('{')
+        last_brace = content.rfind('}')
+        if first_brace != -1 and last_brace != -1:
+            content = content[first_brace:last_brace + 1]
+
+        # Clean up common JSON errors
         # Remove trailing commas before closing brackets/braces
         content = re.sub(r',(\s*[}\]])', r'\1', content)
         # Remove markdown bold markers that might appear
         content = content.replace('**', '')
+        # Remove any newlines in string values that break JSON
+        content = re.sub(r'(?<!\\)\n', ' ', content)
+
+        # Fix incomplete JSON (missing closing brace)
+        if content.count('{') > content.count('}'):
+            content += '}'
 
         # Parse JSON
         challenge_data = json.loads(content)
