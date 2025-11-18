@@ -23,6 +23,24 @@ app.config.from_object(get_config())
 # Set up CORS
 CORS(app, resources={r"/*": {"origins": app.config['CORS_ORIGINS'] or "*"}})
 
+# Ensure CORS headers are added to ALL responses (including errors)
+@app.after_request
+def after_request(response):
+    """Add CORS headers to all responses, including error responses."""
+    # Get origin - handle both list and string formats
+    origins = app.config.get('CORS_ORIGINS', '*')
+    if isinstance(origins, list):
+        # If it's a list, join with commas or use first value
+        origin = origins[0] if origins else '*'
+    else:
+        origin = origins if origins else '*'
+
+    response.headers['Access-Control-Allow-Origin'] = origin
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
 # Set up rate limiting
 limiter = Limiter(
     app=app,
@@ -41,11 +59,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Configure request timeout (30 seconds)
+app.config['TIMEOUT'] = 30
+
 # Log startup configuration
 logger.info(f"Starting SNOP Backend in {os.getenv('FLASK_ENV', 'development')} mode")
 logger.info(f"Debug mode: {app.config['DEBUG']}")
 logger.info(f"Mock pronunciation: {app.config['USE_MOCK_PRONUNCIATION']}")
 logger.info(f"Mock leaderboard: {app.config['USE_MOCK_LEADERBOARD']}")
+logger.info(f"Request timeout: {app.config['TIMEOUT']}s")
 
 # Firebase Admin SDK setup
 try:

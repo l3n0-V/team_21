@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
 import { auth } from "../services/firebase";
 import {
   signInWithEmailAndPassword,
@@ -43,6 +43,27 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [ready, setReady] = useState(false);
 
+  // Function to refresh the token
+  const refreshToken = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      try {
+        // Force token refresh (true parameter)
+        const newToken = await currentUser.getIdToken(true);
+        setToken(newToken);
+        await storage.setItem("token", newToken);
+        console.log('✅ Token refreshed successfully');
+        return newToken;
+      } catch (error) {
+        console.error('❌ Token refresh failed:', error);
+        // If refresh fails, sign out the user
+        await signOut();
+        return null;
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     // Listen to Firebase Auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -73,6 +94,61 @@ export function AuthProvider({ children }) {
 
     return () => unsubscribe();
   }, []);
+
+  // Set up automatic token refresh every 45 minutes
+  // (Firebase tokens expire after 1 hour, so refresh before expiration)
+  useEffect(() => {
+    if (!user) return;
+
+    const REFRESH_INTERVAL = 45 * 60 * 1000; // 45 minutes in milliseconds
+
+    console.log('🔄 Setting up automatic token refresh (every 45 minutes)');
+    const intervalId = setInterval(() => {
+      console.log('⏰ Auto-refreshing token...');
+      refreshToken();
+    }, REFRESH_INTERVAL);
+
+    return () => {
+      console.log('🛑 Clearing token refresh interval');
+      clearInterval(intervalId);
+    };
+  }, [user]);
+
+  // Refresh token when app resumes from background
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active') {
+        console.log('📱 App resumed, checking token...');
+        // Check if token needs refresh (decode and check expiration)
+        if (token) {
+          try {
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            const expiresAt = tokenPayload.exp * 1000; // Convert to milliseconds
+            const now = Date.now();
+            const timeUntilExpiry = expiresAt - now;
+
+            // Refresh if token expires in less than 5 minutes
+            if (timeUntilExpiry < 5 * 60 * 1000) {
+              console.log('🔄 Token expiring soon, refreshing...');
+              await refreshToken();
+            } else {
+              console.log(`✅ Token still valid (expires in ${Math.floor(timeUntilExpiry / 60000)} minutes)`);
+            }
+          } catch (e) {
+            console.error('❌ Error checking token expiration:', e);
+            // If we can't decode token, try to refresh it anyway
+            await refreshToken();
+          }
+        }
+      }
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [user, token]);
 
   const signIn = async (email, password) => {
     try {
@@ -137,6 +213,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const value = { user, token, ready, signIn, signUp, signOut, setUser };
+  const value = { user, token, ready, signIn, signUp, signOut, setUser, refreshToken };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

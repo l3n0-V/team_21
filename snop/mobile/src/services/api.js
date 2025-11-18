@@ -279,156 +279,306 @@ const MockAdapter = {
 };
 
 const HttpAdapter = {
+  // Configuration
+  TIMEOUT: 10000, // 10 seconds
+  MAX_RETRIES: 3,
+  RETRY_DELAY: 1000, // 1 second base delay
+
+  // Helper to create fetch with timeout
+  async fetchWithTimeout(url, options = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timeout after ${this.TIMEOUT / 1000}s`);
+      }
+      throw error;
+    }
+  },
+
+  // Helper to retry failed requests with exponential backoff
+  async retryFetch(fn, retries = this.MAX_RETRIES) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        const isLastAttempt = i === retries - 1;
+
+        // Don't retry on 4xx errors (client errors) except 401 (handled separately)
+        if (error.message && error.message.startsWith('HTTP 4') && !error.message.startsWith('HTTP 401')) {
+          throw error;
+        }
+
+        if (isLastAttempt) {
+          throw error;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s
+        const delayMs = this.RETRY_DELAY * Math.pow(2, i);
+        if (__DEV__) {
+          console.log(`Retry ${i + 1}/${retries} after ${delayMs}ms...`);
+        }
+        await delay(delayMs);
+      }
+    }
+  },
+
+  // Helper to handle fetch responses and provide clear error messages
+  async handleResponse(response) {
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorCode = null;
+
+      try {
+        const errorData = await response.json();
+        if (errorData.error || errorData.message) {
+          errorMessage = errorData.error || errorData.message;
+        }
+        if (errorData.code) {
+          errorCode = errorData.code;
+        }
+      } catch (e) {
+        // Response body is not JSON, use status text
+      }
+
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.code = errorCode;
+      throw error;
+    }
+    return response.json();
+  },
+
+  // Helper to handle 401 errors and retry with refreshed token
+  async fetchWithAuth(url, options, token, refreshTokenFn) {
+    try {
+      // Add auth header
+      const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await this.fetchWithTimeout(url, { ...options, headers });
+
+      // If 401, try to refresh token and retry once
+      if (response.status === 401) {
+        if (__DEV__) {
+          console.log('🔄 Got 401, refreshing token and retrying...');
+        }
+
+        if (refreshTokenFn) {
+          const newToken = await refreshTokenFn();
+          if (newToken) {
+            // Retry with new token
+            const retryHeaders = {
+              ...options.headers,
+              'Authorization': `Bearer ${newToken}`
+            };
+            return await this.fetchWithTimeout(url, { ...options, headers: retryHeaders });
+          }
+        }
+      }
+
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async getFeed() {
-    const res = await fetch(`${API_BASE_URL}/challenges/feed`);
-    return res.json();
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/challenges/feed`);
+      return this.handleResponse(res);
+    });
   },
   async getChallenge(id) {
-    const res = await fetch(`${API_BASE_URL}/challenges/${id}`);
-    return res.json();
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/challenges/${id}`);
+      return this.handleResponse(res);
+    });
   },
   async submitAttempt(body) {
-    const res = await fetch(`${API_BASE_URL}/challenges/attempts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/challenges/attempts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
   async getProfile() {
-    const res = await fetch(`${API_BASE_URL}/user/profile`);
-    return res.json();
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/user/profile`);
+      return this.handleResponse(res);
+    });
   },
   async scoreDaily(challengeId, audioUrl, token) {
-    const res = await fetch(`${API_BASE_URL}/scoreDaily`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        challenge_id: challengeId,
-        audio_url: audioUrl
-      })
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/scoreDaily`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          challenge_id: challengeId,
+          audio_url: audioUrl
+        })
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
   async scoreWeekly(challengeId, audioUrl, token) {
-    const res = await fetch(`${API_BASE_URL}/scoreWeekly`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        challenge_id: challengeId,
-        audio_url: audioUrl
-      })
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/scoreWeekly`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          challenge_id: challengeId,
+          audio_url: audioUrl
+        })
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
   async scoreMonthly(challengeId, audioUrl, token) {
-    const res = await fetch(`${API_BASE_URL}/scoreMonthly`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        challenge_id: challengeId,
-        audio_url: audioUrl
-      })
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/scoreMonthly`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          challenge_id: challengeId,
+          audio_url: audioUrl
+        })
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
   async fetchDailyChallenges() {
-    const res = await fetch(`${API_BASE_URL}/challenges/daily`);
-    return res.json();
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/challenges/daily`);
+      return this.handleResponse(res);
+    });
   },
   async fetchWeeklyChallenges() {
-    const res = await fetch(`${API_BASE_URL}/challenges/weekly`);
-    return res.json();
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/challenges/weekly`);
+      return this.handleResponse(res);
+    });
   },
   async fetchMonthlyChallenges() {
-    const res = await fetch(`${API_BASE_URL}/challenges/monthly`);
-    return res.json();
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/challenges/monthly`);
+      return this.handleResponse(res);
+    });
   },
   async getUserStats(token) {
-    const res = await fetch(`${API_BASE_URL}/userStats`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/userStats`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
   async getLeaderboard(period = 'weekly') {
-    const res = await fetch(`${API_BASE_URL}/leaderboard?period=${period}`);
-    return res.json();
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/leaderboard?period=${period}`);
+      return this.handleResponse(res);
+    });
   },
 
   // ===== CEFR ENDPOINTS =====
 
   async getTodaysChallenges(token) {
-    const res = await fetch(`${API_BASE_URL}/api/challenges/today`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/api/challenges/today`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
 
   async submitChallengeAnswer(token, challengeId, userAnswer) {
-    const res = await fetch(`${API_BASE_URL}/api/challenges/submit`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        challenge_id: challengeId,
-        user_answer: userAnswer
-      })
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/api/challenges/submit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          challenge_id: challengeId,
+          user_answer: userAnswer
+        })
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
 
   async submitIRLChallenge(token, challengeId, photoBase64, options = {}) {
-    const res = await fetch(`${API_BASE_URL}/api/challenges/irl/verify`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        challenge_id: challengeId,
-        photo_base64: photoBase64,
-        ...options // gps_lat, gps_lng, text_description
-      })
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/api/challenges/irl/verify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          challenge_id: challengeId,
+          photo_base64: photoBase64,
+          ...options // gps_lat, gps_lng, text_description
+        })
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   },
 
   async getUserProgress(token) {
-    const res = await fetch(`${API_BASE_URL}/api/user/progress`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/api/user/progress`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return this.handleResponse(res);
     });
-    return res.json();
   }
 };
 
 // Log which adapter is being used and available methods
 const selectedAdapter = USE_MOCK ? MockAdapter : HttpAdapter;
-console.log('API Mode:', USE_MOCK ? 'MOCK' : 'HTTP');
-console.log('API Base URL:', API_BASE_URL);
-console.log('Available API methods:', Object.keys(selectedAdapter));
+
+if (__DEV__) {
+  console.log('API Mode:', USE_MOCK ? 'MOCK' : 'HTTP');
+  console.log('API Base URL:', API_BASE_URL);
+  console.log('Available API methods:', Object.keys(selectedAdapter));
+}
 
 export const api = selectedAdapter;
 
