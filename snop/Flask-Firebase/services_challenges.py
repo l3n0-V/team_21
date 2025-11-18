@@ -271,3 +271,232 @@ def get_rotation_status():
         }
 
     return status
+
+
+# ============================================================================
+# CEFR-Based Challenge Functions (New System)
+# ============================================================================
+
+def get_challenges_by_cefr_level(cefr_level, challenge_type=None):
+    """
+    Fetch challenges for a specific CEFR level and optionally filter by type.
+
+    Args:
+        cefr_level: str - CEFR level (e.g., "A1", "A2")
+        challenge_type: str - Optional challenge type filter ("listening", "irl", etc.)
+
+    Returns:
+        list - List of challenges matching criteria
+    """
+    challenges_ref = db.collection("challenges")
+    query = challenges_ref.where("cefr_level", "==", cefr_level)
+
+    if challenge_type:
+        query = query.where("type", "==", challenge_type)
+
+    challenges = []
+    for doc in query.stream():
+        challenge = doc.to_dict()
+        challenge["id"] = doc.id
+        challenges.append(challenge)
+
+    return challenges
+
+
+def get_challenges_for_user_level(uid):
+    """
+    Fetch all challenges available to user based on their CEFR progression.
+    Returns challenges at or below user's current level.
+
+    Args:
+        uid: str - Firebase user ID
+
+    Returns:
+        dict - Challenges grouped by type
+    """
+    from services_cefr import get_user_cefr_progress, get_available_levels_for_user
+
+    # Get user's available levels (unlocked levels)
+    available_levels = get_available_levels_for_user(uid)
+
+    # Fetch challenges for all available levels
+    all_challenges = {
+        "irl": [],
+        "listening": [],
+        "fill_blank": [],
+        "multiple_choice": [],
+        "pronunciation": []
+    }
+
+    for level in available_levels:
+        level_challenges = get_challenges_by_cefr_level(level)
+
+        for challenge in level_challenges:
+            challenge_type = challenge.get("type", "")
+            if challenge_type in all_challenges:
+                all_challenges[challenge_type].append(challenge)
+
+    return all_challenges
+
+
+def get_todays_challenges_for_user(uid):
+    """
+    Get today's available challenges for a user with completion status.
+    This is the main endpoint for the new CEFR-based daily challenge system.
+
+    Args:
+        uid: str - Firebase user ID
+
+    Returns:
+        dict - Available challenges by type with completion status
+    """
+    from services_daily_progress import get_challenge_completion_status, get_current_utc_date
+    from services_cefr import get_user_cefr_progress
+
+    # Get user's CEFR level and progress
+    cefr_data = get_user_cefr_progress(uid)
+    if not cefr_data:
+        # Initialize CEFR for new users
+        from services_cefr import initialize_user_cefr_progress
+        initialize_user_cefr_progress(uid)
+        cefr_data = get_user_cefr_progress(uid)
+
+    current_level = cefr_data.get("current_level", "A1")
+
+    # Get all available challenges for user's level(s)
+    challenges_by_type = get_challenges_for_user_level(uid)
+
+    # Get completion status for today
+    completion_status = get_challenge_completion_status(uid)
+
+    # Build response
+    response = {
+        "date": get_current_utc_date(),
+        "user_level": current_level,
+        "challenges": {}
+    }
+
+    for challenge_type, challenges in challenges_by_type.items():
+        status = completion_status.get(challenge_type, {})
+
+        response["challenges"][challenge_type] = {
+            "available": challenges,
+            "completed_today": status.get("completed", 0),
+            "limit": status.get("limit", -1),
+            "can_complete_more": status.get("can_complete_more", True)
+        }
+
+    return response
+
+
+def submit_challenge_answer(uid, challenge_id, user_answer):
+    """
+    Submit an answer for a challenge (listening, fill_blank, multiple_choice).
+
+    Args:
+        uid: str - Firebase user ID
+        challenge_id: str - Challenge ID
+        user_answer: int or str - User's answer (index for MC, text for fill_blank)
+
+    Returns:
+        dict - Result with correctness, XP, and feedback
+    """
+    from services_daily_progress import can_complete_challenge, record_challenge_completion
+    from services_cefr import increment_challenge_completion
+    from services_firestore import update_time_based_xp
+    from firebase_admin import firestore
+
+    # Fetch challenge
+    challenge = get_challenge_by_id(challenge_id)
+    if not challenge:
+        return {"success": False, "error": "Challenge not found"}
+
+    challenge_type = challenge.get("type")
+    cefr_level = challenge.get("cefr_level", "A1")
+
+    # Check if user can complete this challenge type today
+    can_complete = can_complete_challenge(uid, challenge_type)
+    if not can_complete["can_complete"]:
+        return {
+            "success": False,
+            "error": can_complete["reason"]
+        }
+
+    # Check answer correctness
+    correct = False
+    if challenge_type in ["listening", "multiple_choice"]:
+        correct_answer = challenge.get("correct_answer")
+        correct = (int(user_answer) == int(correct_answer))
+    elif challenge_type == "fill_blank":
+        correct_answer = challenge.get("missing_word", "").lower().strip()
+        user_answer_normalized = str(user_answer).lower().strip()
+        correct = (user_answer_normalized == correct_answer)
+
+    # Calculate XP
+    base_xp = challenge.get("xp_reward", 10)
+    xp_gained = base_xp if correct else int(base_xp * 0.5)  # Half XP for incorrect
+
+    # Record completion in daily progress
+    record_challenge_completion(
+        uid=uid,
+        challenge_id=challenge_id,
+        challenge_type=challenge_type,
+        challenge_cefr_level=cefr_level,
+        xp_gained=xp_gained,
+        additional_data={"correct": correct, "user_answer": user_answer}
+    )
+
+    # Update CEFR progression
+    if correct:
+        progression_result = increment_challenge_completion(uid, cefr_level)
+    else:
+        progression_result = {"level_up": False}
+
+    # Update user XP totals and time-based XP
+    update_time_based_xp(uid, xp_gained)
+    user_ref = db.collection("users").document(uid)
+    user_ref.set({
+        "xp_total": firestore.Increment(xp_gained),
+        "last_attempt_at": datetime.now(timezone.utc).isoformat()
+    }, merge=True)
+
+    # Build response
+    feedback = "Correct! Well done!" if correct else "Not quite right. Try again!"
+
+    # Get updated completion status
+    from services_daily_progress import get_challenge_completion_status
+    updated_status = get_challenge_completion_status(uid)
+    type_status = updated_status.get(challenge_type, {})
+
+    response = {
+        "success": True,
+        "correct": correct,
+        "xp_gained": xp_gained,
+        "feedback": feedback,
+        "completion_status": {
+            f"{challenge_type}_completed_today": type_status.get("completed", 0),
+            f"{challenge_type}_limit": type_status.get("limit", -1),
+            "can_complete_more": type_status.get("can_complete_more", True)
+        }
+    }
+
+    # Add level up info if applicable
+    if progression_result.get("level_up"):
+        response["level_up"] = True
+        response["new_level"] = progression_result.get("new_level")
+        response["message"] = f"Congratulations! You've advanced to {progression_result.get('new_level')}!"
+
+    # Get updated level progress
+    from services_cefr import get_user_cefr_progress
+    cefr_data = get_user_cefr_progress(uid)
+    current_level = cefr_data.get("current_level", "A1")
+    level_progress = cefr_data.get("progress", {}).get(current_level, {})
+
+    response["level_progress"] = {
+        "current_level": current_level,
+        "completed": level_progress.get("completed", 0),
+        "required": level_progress.get("required", 20),
+        "percentage": int((level_progress.get("completed", 0) / level_progress.get("required", 20)) * 100)
+    }
+
+    return response

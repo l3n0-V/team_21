@@ -605,6 +605,282 @@ def rotation_status():
     status = get_rotation_status()
     return jsonify(status), 200
 
+
+# ============================================================================
+# CEFR-Based Challenge System Endpoints (New)
+# ============================================================================
+
+@app.get("/api/challenges/today")
+@require_auth
+def get_todays_challenges():
+    """
+    Get today's available challenges for the authenticated user.
+    Returns challenges based on user's CEFR level with completion status.
+    """
+    from services_challenges import get_todays_challenges_for_user
+
+    uid = request.user["uid"]
+
+    try:
+        challenges_data = get_todays_challenges_for_user(uid)
+        return jsonify(challenges_data), 200
+    except Exception as e:
+        logger.error(f"Error fetching today's challenges for user {uid}: {e}")
+        return jsonify({"error": "Failed to fetch challenges"}), 500
+
+
+@app.post("/api/challenges/submit")
+@require_auth
+def submit_challenge():
+    """
+    Submit a challenge answer for scoring.
+    Handles listening, fill_blank, and multiple_choice challenges.
+    """
+    from services_challenges import submit_challenge_answer
+
+    uid = request.user["uid"]
+    body = request.get_json(force=True)
+
+    challenge_id = body.get("challenge_id")
+    user_answer = body.get("user_answer")
+
+    if not challenge_id:
+        return jsonify({"error": "challenge_id is required"}), 400
+    if user_answer is None:
+        return jsonify({"error": "user_answer is required"}), 400
+
+    try:
+        result = submit_challenge_answer(uid, challenge_id, user_answer)
+
+        if not result.get("success"):
+            return jsonify(result), 400
+
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error submitting challenge {challenge_id} for user {uid}: {e}")
+        return jsonify({"error": "Failed to submit challenge"}), 500
+
+
+@app.post("/api/challenges/irl/verify")
+@require_auth
+def verify_irl():
+    """
+    Verify IRL challenge completion with photo upload.
+    Supports multipart/form-data for file upload or JSON with base64 image.
+    """
+    from services_irl import verify_irl_challenge
+    from services_daily_progress import can_complete_challenge, record_challenge_completion
+    from services_challenges import get_challenge_by_id
+    from services_cefr import increment_challenge_completion
+    from services_firestore import update_time_based_xp
+    from firebase_admin import firestore
+
+    uid = request.user["uid"]
+
+    # Check if it's multipart (file upload) or JSON (base64)
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        challenge_id = request.form.get("challenge_id")
+        photo_file = request.files.get("photo")
+        gps_lat = request.form.get("gps_lat")
+        gps_lng = request.form.get("gps_lng")
+        text_description = request.form.get("text_description")
+
+        if not challenge_id:
+            return jsonify({"error": "challenge_id is required"}), 400
+        if not photo_file:
+            return jsonify({"error": "photo is required"}), 400
+
+        # Convert GPS to float if provided
+        if gps_lat:
+            gps_lat = float(gps_lat)
+        if gps_lng:
+            gps_lng = float(gps_lng)
+
+        try:
+            # Check if user can complete IRL challenge today
+            can_complete = can_complete_challenge(uid, "irl")
+            if not can_complete["can_complete"]:
+                return jsonify({"error": can_complete["reason"]}), 400
+
+            # Verify challenge
+            verification = verify_irl_challenge(
+                uid=uid,
+                challenge_id=challenge_id,
+                photo_file=photo_file,
+                gps_lat=gps_lat,
+                gps_lng=gps_lng,
+                text_description=text_description
+            )
+
+            if not verification.get("success"):
+                return jsonify(verification), 400
+
+            # Fetch challenge for XP and CEFR level
+            challenge = get_challenge_by_id(challenge_id)
+            xp_gained = challenge.get("xp_reward", 50)
+            cefr_level = challenge.get("cefr_level", "A1")
+
+            # Record completion
+            record_challenge_completion(
+                uid=uid,
+                challenge_id=challenge_id,
+                challenge_type="irl",
+                challenge_cefr_level=cefr_level,
+                xp_gained=xp_gained,
+                additional_data=verification.get("verification_data")
+            )
+
+            # Update CEFR progression
+            progression_result = increment_challenge_completion(uid, cefr_level)
+
+            # Update user XP
+            update_time_based_xp(uid, xp_gained)
+            user_ref = db.collection("users").document(uid)
+            user_ref.set({
+                "xp_total": firestore.Increment(xp_gained),
+                "last_attempt_at": datetime.now().isoformat()
+            }, merge=True)
+
+            # Build response
+            from services_daily_progress import get_challenge_completion_status
+            completion_status = get_challenge_completion_status(uid)
+            irl_status = completion_status.get("irl", {})
+
+            response = {
+                "success": True,
+                "verified": True,
+                "xp_gained": xp_gained,
+                "photo_url": verification.get("photo_url"),
+                "gps_verified": verification.get("gps_verified"),
+                "feedback": "Great job! You completed your IRL challenge.",
+                "completion_status": {
+                    "irl_completed_today": irl_status.get("completed", 1),
+                    "irl_limit": irl_status.get("limit", 1),
+                    "can_complete_more": irl_status.get("can_complete_more", False)
+                }
+            }
+
+            if progression_result.get("level_up"):
+                response["level_up"] = True
+                response["new_level"] = progression_result.get("new_level")
+
+            return jsonify(response), 200
+
+        except Exception as e:
+            logger.error(f"Error verifying IRL challenge for user {uid}: {e}")
+            return jsonify({"error": "Failed to verify IRL challenge"}), 500
+
+    else:
+        # JSON request with base64 image
+        body = request.get_json(force=True)
+        challenge_id = body.get("challenge_id")
+        photo_base64 = body.get("photo_base64")
+        gps_lat = body.get("gps_lat")
+        gps_lng = body.get("gps_lng")
+        text_description = body.get("text_description")
+
+        if not challenge_id:
+            return jsonify({"error": "challenge_id is required"}), 400
+        if not photo_base64:
+            return jsonify({"error": "photo_base64 is required"}), 400
+
+        try:
+            # Similar verification logic as above
+            can_complete = can_complete_challenge(uid, "irl")
+            if not can_complete["can_complete"]:
+                return jsonify({"error": can_complete["reason"]}), 400
+
+            verification = verify_irl_challenge(
+                uid=uid,
+                challenge_id=challenge_id,
+                photo_base64=photo_base64,
+                gps_lat=gps_lat,
+                gps_lng=gps_lng,
+                text_description=text_description
+            )
+
+            if not verification.get("success"):
+                return jsonify(verification), 400
+
+            # Same completion logic as multipart version above
+            challenge = get_challenge_by_id(challenge_id)
+            xp_gained = challenge.get("xp_reward", 50)
+            cefr_level = challenge.get("cefr_level", "A1")
+
+            record_challenge_completion(
+                uid=uid,
+                challenge_id=challenge_id,
+                challenge_type="irl",
+                challenge_cefr_level=cefr_level,
+                xp_gained=xp_gained,
+                additional_data=verification.get("verification_data")
+            )
+
+            progression_result = increment_challenge_completion(uid, cefr_level)
+
+            update_time_based_xp(uid, xp_gained)
+            user_ref = db.collection("users").document(uid)
+            user_ref.set({
+                "xp_total": firestore.Increment(xp_gained),
+                "last_attempt_at": datetime.now().isoformat()
+            }, merge=True)
+
+            from services_daily_progress import get_challenge_completion_status
+            completion_status = get_challenge_completion_status(uid)
+            irl_status = completion_status.get("irl", {})
+
+            response = {
+                "success": True,
+                "verified": True,
+                "xp_gained": xp_gained,
+                "photo_url": verification.get("photo_url"),
+                "gps_verified": verification.get("gps_verified"),
+                "feedback": "Great job! You completed your IRL challenge.",
+                "completion_status": {
+                    "irl_completed_today": irl_status.get("completed", 1),
+                    "irl_limit": irl_status.get("limit", 1),
+                    "can_complete_more": irl_status.get("can_complete_more", False)
+                }
+            }
+
+            if progression_result.get("level_up"):
+                response["level_up"] = True
+                response["new_level"] = progression_result.get("new_level")
+
+            return jsonify(response), 200
+
+        except Exception as e:
+            logger.error(f"Error verifying IRL challenge for user {uid}: {e}")
+            return jsonify({"error": "Failed to verify IRL challenge"}), 500
+
+
+@app.get("/api/user/progress")
+@require_auth
+def get_user_progress():
+    """
+    Get user's CEFR progression and roadmap status.
+    """
+    from services_cefr import get_roadmap_status
+    from services_daily_progress import get_user_recent_completions
+
+    uid = request.user["uid"]
+
+    try:
+        roadmap = get_roadmap_status(uid)
+        recent_completions = get_user_recent_completions(uid, limit=10)
+
+        response = {
+            "current_level": roadmap.get("current_level"),
+            "progress": roadmap.get("levels"),
+            "recent_completions": recent_completions
+        }
+
+        return jsonify(response), 200
+    except Exception as e:
+        logger.error(f"Error fetching progress for user {uid}: {e}")
+        return jsonify({"error": "Failed to fetch user progress"}), 500
+
+
 # User Profile Management Endpoints
 @app.post("/auth/register")
 @limiter.limit("5 per hour")

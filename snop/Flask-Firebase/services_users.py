@@ -40,6 +40,10 @@ def create_user_profile(uid, email, display_name=None, photo_url=None):
     # Create the user document in Firestore
     db.collection("users").document(uid).set(profile_data, merge=True)
 
+    # Initialize CEFR progression fields for new user
+    from services_cefr import initialize_user_cefr_progress
+    initialize_user_cefr_progress(uid)
+
     return profile_data
 
 
