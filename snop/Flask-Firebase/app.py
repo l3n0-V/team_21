@@ -379,6 +379,23 @@ def score_daily():
         add_attempt(uid, challenge_id, audio_url, result)
         print(f"[PRONUNCIATION] Attempt stored successfully")
 
+        # Record in daily progress for tracking
+        from services_daily_progress import record_challenge_completion
+        cefr_level = challenge.get("cefr_level", "A1")
+        record_challenge_completion(
+            uid=uid,
+            challenge_id=challenge_id,
+            challenge_type="pronunciation",
+            challenge_cefr_level=cefr_level,
+            xp_gained=result.get("xp_gained", 0),
+            additional_data={
+                "pass": result.get("pass"),
+                "similarity": result.get("similarity"),
+                "transcription": result.get("transcription")
+            }
+        )
+        print(f"[PRONUNCIATION] Recorded in daily progress")
+
         # Check and award badges
         new_badges = check_and_award_badges(uid, result)
         if new_badges:
