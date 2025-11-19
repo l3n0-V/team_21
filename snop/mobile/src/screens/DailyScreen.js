@@ -13,7 +13,7 @@ import { uploadAudioFile } from "../services/audioService";
 import { useTheme } from "../context/ThemeContext";
 
 export default function DailyScreen({ route }) {
-  const { challenges } = useChallenges();
+  const { challenges, loadTodaysChallenges, loadUserProgress } = useChallenges();
   const navigation = useNavigation();
   const { colors } = useTheme();
   // Use passed challenge or default to first challenge
@@ -89,6 +89,10 @@ export default function DailyScreen({ route }) {
       } catch (perfError) {
         console.warn("Failed to update performance:", perfError);
       }
+
+      // Reload today's challenges and progress to update completion status
+      await loadTodaysChallenges(token);
+      await loadUserProgress(token);
 
       // Show success message if the user passed
       if (response.pass) {
