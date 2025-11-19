@@ -89,16 +89,43 @@ export default function SwipeableCard({ challenge, onSwipeLeft, onSwipeRight, on
 
   // Get difficulty color
   const getDifficultyColor = () => {
-    switch (challenge.difficulty?.toLowerCase()) {
+    // Handle both string ('easy', 'medium', 'hard') and number (1, 2, 3) difficulty values
+    const difficulty = challenge.difficulty;
+
+    // Convert number to string if needed
+    let difficultyStr = '';
+    if (typeof difficulty === 'number') {
+      difficultyStr = difficulty === 1 ? 'easy' : difficulty === 2 ? 'medium' : 'hard';
+    } else if (typeof difficulty === 'string') {
+      difficultyStr = difficulty.toLowerCase();
+    }
+
+    switch (difficultyStr) {
       case 'easy':
+      case '1':
         return colors.difficultyEasy || colors.success;
       case 'medium':
+      case '2':
         return colors.difficultyMedium || colors.warning;
       case 'hard':
+      case '3':
         return colors.difficultyHard || colors.error;
       default:
         return colors.primary;
     }
+  };
+
+  // Get difficulty display text
+  const getDifficultyText = () => {
+    const difficulty = challenge.difficulty;
+
+    if (typeof difficulty === 'number') {
+      return difficulty === 1 ? 'EASY' : difficulty === 2 ? 'MEDIUM' : 'HARD';
+    } else if (typeof difficulty === 'string') {
+      return difficulty.toUpperCase();
+    }
+
+    return '';
   };
 
   // Get challenge type icon
@@ -150,7 +177,7 @@ export default function SwipeableCard({ challenge, onSwipeLeft, onSwipeRight, on
             ]}
           >
             <Text style={styles.difficultyText}>
-              {challenge.difficulty?.toUpperCase()}
+              {getDifficultyText()}
             </Text>
           </View>
         </View>

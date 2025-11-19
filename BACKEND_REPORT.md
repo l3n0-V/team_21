@@ -1,8 +1,8 @@
 # Flask-Firebase Backend Status Report
 **Project:** SNOP - Language Learning App
-**Last Updated:** November 17, 2025
-**Backend Location:** `/Users/henrikdahlostrom/Desktop/team_21/snop/Flask-Firebase/`
-**Recent Commits:** `a2bf51f`, `be690f8`, `7f38578`, `383210f` (November 17, 2025)
+**Last Updated:** November 19, 2025
+**Backend Location:** `C:\Users\Eric\PycharmProjects\team_21\snop\Flask-Firebase\`
+**Recent Changes:** Network reliability & error handling improvements (November 19, 2025)
 
 ---
 
@@ -22,6 +22,104 @@ The Flask-Firebase backend has reached **FULL PRODUCTION READINESS** as of Novem
 - **Deployment-ready** with Gunicorn and Docker support
 - **Complete deployment documentation** (PRODUCTION.md)
 - **Ready for immediate production deployment**
+
+---
+
+## November 19, 2025 - Network Reliability & Error Handling Improvements
+
+### Summary
+Major reliability overhaul addressing network connectivity issues and improving error handling throughout the backend. These changes were prompted by "Network request failed" errors on mobile devices, which turned out to be CORS configuration issues and missing structured error responses. The updates ensure mobile apps (especially physical devices) can reliably connect to the backend with clear, actionable error messages.
+
+### Changes Made
+
+#### 1. **CORS Headers on All Responses** (`app.py:26-42`)
+
+**Problem:** CORS headers were only being set by Flask-CORS library, but error responses (404, 500) weren't consistently including them, causing "blocked by CORS policy" errors in mobile browsers.
+
+**Solution:** Added `@app.after_request` decorator to ensure ALL responses include proper CORS headers.
+
+**Impact:**
+- ✅ Fixed CORS errors on web platform
+- ✅ Error responses now properly handled by mobile apps
+- ✅ OPTIONS preflight requests work correctly
+- ✅ Supports both development (`*`) and production (specific origins)
+
+#### 2. **Enhanced Token Expiration Validation** (`auth_mw.py:5-46`)
+
+**Problem:** Expired or revoked tokens returned generic "Invalid token" errors.
+
+**Solution:** Enhanced `@require_auth` decorator with specific error codes:
+- `token_expired` - Token past 1-hour expiration
+- `token_revoked` - User signed out or token manually revoked
+- `token_invalid` - Malformed or tampered token
+- `auth_failed` - Unexpected authentication error
+
+**Impact:**
+- ✅ Mobile apps can detect token expiration and trigger refresh
+- ✅ Clear error codes enable programmatic error handling
+- ✅ Added `check_revoked=True` for security
+
+#### 3. **Request Timeout Configuration** (`app.py:55-63`)
+
+**Solution:** Added explicit 30s timeout configuration and startup logging.
+
+**Impact:**
+- ✅ Clear documentation of timeout limits
+- ✅ Visible in startup logs for debugging
+- ✅ Gunicorn already has 120s timeout for Whisper processing
+
+#### 4. **CORS Origin Format Fix** (`.env:5`)
+
+**Critical Bug:** Fixed invalid CORS header format `['*']` → `*`
+
+**Before:**
+```
+Access-Control-Allow-Origin: ['*']  ❌ INVALID
+```
+
+**After:**
+```
+Access-Control-Allow-Origin: *  ✅ VALID
+```
+
+### Testing Results
+
+```bash
+# ✅ Flask starts successfully
+$ python app.py
+INFO - Request timeout: 30s
+INFO - Firebase initialized successfully
+
+# ✅ Health endpoint works
+$ curl http://localhost:5000/health
+{"status": "ok"}
+
+# ✅ CORS headers on success
+$ curl -I http://localhost:5000/health | grep access-control-allow-origin
+Access-Control-Allow-Origin: *
+
+# ✅ CORS headers on errors (404)
+$ curl -I http://localhost:5000/nonexistent | grep access-control-allow-origin
+Access-Control-Allow-Origin: *
+```
+
+### Impact Summary
+
+**Before:**
+- ❌ "Network request failed" errors on physical devices
+- ❌ Generic 401 errors with no context
+- ❌ CORS blocking all web platform requests
+
+**After:**
+- ✅ Clear error messages: "HTTP 401: Token has expired"
+- ✅ Mobile apps can detect and handle specific error types
+- ✅ Web platform works with proper CORS headers
+- ✅ Token refresh can be triggered programmatically
+
+**Files Modified:**
+- `app.py` - CORS headers, timeout config
+- `auth_mw.py` - Enhanced token validation
+- `.env` - CORS configuration
 
 ---
 
