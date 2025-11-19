@@ -117,16 +117,19 @@ export default function ProgressRingTabBar({ state, descriptors, navigation }) {
 function getProgressForRoute(routeName, todaysChallenges, userProgress) {
   if (routeName === 'Today') {
     // Calculate today's completion percentage
-    if (!todaysChallenges) return 0;
+    if (!todaysChallenges || !todaysChallenges.challenges) return 0;
 
     let totalChallenges = 0;
     let completedChallenges = 0;
 
     // Count all challenges across all types
-    Object.keys(todaysChallenges).forEach(type => {
-      const challengeList = todaysChallenges[type] || [];
-      totalChallenges += challengeList.length;
-      completedChallenges += challengeList.filter(c => c.completed).length;
+    Object.keys(todaysChallenges.challenges).forEach(type => {
+      const typeData = todaysChallenges.challenges[type];
+      if (typeData && Array.isArray(typeData.available)) {
+        const challengeList = typeData.available;
+        totalChallenges += challengeList.length;
+        completedChallenges += typeData.completed_today || 0;
+      }
     });
 
     if (totalChallenges === 0) return 0;
