@@ -61,13 +61,24 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
       if (result.correct) {
         Alert.alert(
           "Riktig! 🎉",
-          `Flott jobbet! Du fikk ${result.xp_gained} XP`,
-          [{ text: "Fortsett", onPress: () => navigation.goBack() }]
+          `Flott jobbet! Du fikk ${result.xp_gained} XP\n\nHva vil du gjøre nå?`,
+          [
+            {
+              text: "Gå til Today",
+              onPress: () => navigation.navigate("Today"),
+              style: "default"
+            },
+            {
+              text: "Prøv en annen",
+              onPress: () => navigation.goBack(),
+              style: "cancel"
+            }
+          ]
         );
       } else {
         Alert.alert(
           "Nesten! 💪",
-          `Dette er en vanlig feil - mange trenger flere forsøk.\n\nRiktig svar: "${result.correct_answer || challenge.missing_word}"`,
+          `Dette er en vanlig feil - mange trenger flere forsøk.\n\nRiktig svar: "${result.correct_answer || challenge.missing_word}"\n\nHva vil du gjøre?`,
           [
             {
               text: "Prøv igjen",
@@ -75,7 +86,13 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
                 setSubmitted(false);
                 setUserAnswer("");
               },
+              style: "cancel"
             },
+            {
+              text: "Gå til Today",
+              onPress: () => navigation.navigate("Today"),
+              style: "default"
+            }
           ]
         );
       }

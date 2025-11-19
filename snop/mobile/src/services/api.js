@@ -225,6 +225,21 @@ const MockAdapter = {
     };
   },
 
+  async generateChallenges(token, count = 5, types = null) {
+    await delay(1000);
+    console.log('MockAdapter.generateChallenges called', { count, types });
+
+    return {
+      success: true,
+      generated_count: count,
+      saved_count: count,
+      challenge_ids: ['mock-1', 'mock-2', 'mock-3', 'mock-4', 'mock-5'].slice(0, count),
+      cefr_level: 'A1',
+      difficulty: 1,
+      message: 'Challenges generated successfully (mock mode)'
+    };
+  },
+
   async getUserProgress(token) {
     await delay(500);
     console.log('MockAdapter.getUserProgress called');
@@ -560,6 +575,25 @@ const HttpAdapter = {
           challenge_id: challengeId,
           photo_base64: photoBase64,
           ...options // gps_lat, gps_lng, text_description
+        })
+      });
+      return this.handleResponse(res);
+    });
+  },
+
+  async generateChallenges(token, count = 5, types = null) {
+    return this.retryFetch(async () => {
+      const url = `${API_BASE_URL}/api/challenges/generate`;
+      if (__DEV__) console.log('[API] POST', url, { count, types });
+      const res = await this.fetchWithTimeout(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          count: count,
+          types: types
         })
       });
       return this.handleResponse(res);

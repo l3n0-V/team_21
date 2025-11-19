@@ -105,13 +105,24 @@ export default function ListeningChallengeScreen({ route, navigation }) {
       if (result.correct) {
         Alert.alert(
           "Riktig! 🎉",
-          `Du hørte riktig! Du fikk ${result.xp_gained} XP`,
-          [{ text: "Fortsett", onPress: () => navigation.goBack() }]
+          `Du hørte riktig! Du fikk ${result.xp_gained} XP\n\nHva vil du gjøre nå?`,
+          [
+            {
+              text: "Gå til Today",
+              onPress: () => navigation.navigate("Today"),
+              style: "default"
+            },
+            {
+              text: "Prøv en annen",
+              onPress: () => navigation.goBack(),
+              style: "cancel"
+            }
+          ]
         );
       } else {
         Alert.alert(
           "Nesten! 👂",
-          `Lytting er vanskelig - dette er helt normalt!\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}`,
+          `Lytting er vanskelig - dette er helt normalt!\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}\n\nHva vil du gjøre?`,
           [
             {
               text: "Prøv igjen",
@@ -119,7 +130,13 @@ export default function ListeningChallengeScreen({ route, navigation }) {
                 setSubmitted(false);
                 setSelectedAnswer(null);
               },
+              style: "cancel"
             },
+            {
+              text: "Gå til Today",
+              onPress: () => navigation.navigate("Today"),
+              style: "default"
+            }
           ]
         );
       }

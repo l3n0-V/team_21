@@ -402,6 +402,106 @@ def get_todays_challenges_for_user(uid):
     return response
 
 
+def generate_challenges_for_user(uid, count=5, challenge_types=None):
+    """
+    Generate new AI-powered challenges for a user based on their CEFR level.
+    Automatically saves generated challenges to Firestore with proper CEFR level tagging.
+
+    Args:
+        uid: str - Firebase user ID
+        count: int - Number of challenges to generate
+        challenge_types: list - Specific challenge types to generate (None = all types)
+
+    Returns:
+        dict - Result with generated challenge IDs and stats
+    """
+    from services_cefr import get_user_cefr_progress
+    from services_ai_generation import (
+        generate_pronunciation_challenge,
+        generate_listening_challenge,
+        generate_fill_blank_challenge,
+        generate_multiple_choice_challenge,
+        CEFR_TO_DIFFICULTY,
+        save_challenges_to_firestore
+    )
+    import random
+
+    # Get user's current CEFR level
+    cefr_data = get_user_cefr_progress(uid)
+    if not cefr_data:
+        from services_cefr import initialize_user_cefr_progress
+        initialize_user_cefr_progress(uid)
+        cefr_data = get_user_cefr_progress(uid)
+
+    current_level = cefr_data.get("current_level", "A1")
+    difficulty = CEFR_TO_DIFFICULTY.get(current_level, 1)
+
+    # Default challenge types
+    if challenge_types is None:
+        challenge_types = ["pronunciation", "listening", "fill_blank", "multiple_choice"]
+
+    print(f"\n{'='*60}")
+    print(f"Generating challenges for user {uid}")
+    print(f"Current CEFR level: {current_level}")
+    print(f"Difficulty: {difficulty}")
+    print(f"Challenge types: {challenge_types}")
+    print(f"Count: {count}")
+    print(f"{'='*60}\n")
+
+    # Generate challenges
+    challenges = []
+    for i in range(count):
+        challenge_type = random.choice(challenge_types)
+        topic = None  # Random topic
+
+        print(f"Generating challenge {i+1}/{count}: {challenge_type}, difficulty {difficulty}...")
+
+        try:
+            if challenge_type == "pronunciation":
+                challenge = generate_pronunciation_challenge(difficulty, topic, "daily")
+            elif challenge_type == "listening":
+                challenge = generate_listening_challenge(difficulty, topic, "daily")
+            elif challenge_type == "fill_blank":
+                challenge = generate_fill_blank_challenge(difficulty, topic, "daily")
+            elif challenge_type == "multiple_choice":
+                challenge = generate_multiple_choice_challenge(difficulty, topic, "daily")
+            else:
+                print(f"  ✗ Unknown challenge type: {challenge_type}")
+                continue
+
+            # Add CEFR level to challenge
+            challenge["cefr_level"] = current_level
+            challenges.append(challenge)
+            print(f"  ✓ Generated: {challenge.get('title', 'Unknown')}")
+
+        except Exception as e:
+            print(f"  ✗ Failed to generate challenge {i+1}: {e}")
+            continue
+
+    # Save to Firestore
+    saved_ids = []
+    if challenges:
+        print(f"\nSaving {len(challenges)} challenges to Firestore...")
+        saved_ids = save_challenges_to_firestore(challenges)
+
+    print(f"\n{'='*60}")
+    print(f"Generation Complete")
+    print(f"{'='*60}")
+    print(f"✓ Successfully generated: {len(challenges)}/{count}")
+    print(f"✗ Failed: {count - len(challenges)}")
+    print(f"💾 Saved to Firestore: {len(saved_ids)}")
+    print(f"{'='*60}\n")
+
+    return {
+        "success": True,
+        "generated_count": len(challenges),
+        "saved_count": len(saved_ids),
+        "challenge_ids": saved_ids,
+        "cefr_level": current_level,
+        "difficulty": difficulty
+    }
+
+
 def submit_challenge_answer(uid, challenge_id, user_answer):
     """
     Submit an answer for a challenge (listening, fill_blank, multiple_choice).

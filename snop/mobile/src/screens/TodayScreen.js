@@ -24,6 +24,13 @@ export default function TodayScreen() {
   const { colors } = useTheme();
   const [featuredChallenges, setFeaturedChallenges] = useState([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [viewedChallenges, setViewedChallenges] = useState({
+    irl: new Set(),
+    listening: new Set(),
+    fill_blank: new Set(),
+    multiple_choice: new Set(),
+    pronunciation: new Set()
+  });
 
   useEffect(() => {
     if (token) {
@@ -75,6 +82,15 @@ export default function TodayScreen() {
   }
 
   const handleChallengePress = (challenge) => {
+    // Mark challenge as viewed
+    if (challenge && challenge.type && challenge.id) {
+      setViewedChallenges(prev => {
+        const newViewed = { ...prev };
+        newViewed[challenge.type] = new Set(prev[challenge.type]).add(challenge.id);
+        return newViewed;
+      });
+    }
+
     // Navigate to appropriate screen based on challenge type
     switch (challenge.type) {
       case 'listening':
@@ -123,12 +139,22 @@ export default function TodayScreen() {
     );
   };
 
-  const renderQuickOverview = (title, icon, typeData) => {
+  const renderQuickOverview = (title, icon, typeData, challengeType) => {
     if (!typeData) return null;
 
     const { completed_today = 0, limit = 0, can_complete_more } = typeData;
     const isComplete = limit > 0 && !can_complete_more;
     const percentage = limit > 0 ? Math.min((completed_today / limit) * 100, 100) : 0;
+
+    // Filter out already viewed challenges
+    const unviewedChallenges = (typeData.available || []).filter(challenge => {
+      return !viewedChallenges[challengeType]?.has(challenge.id);
+    });
+
+    // Get next unviewed challenge, or fallback to first if all have been viewed
+    const nextChallenge = unviewedChallenges.length > 0
+      ? unviewedChallenges[0]
+      : typeData.available?.[0];
 
     return (
       <TouchableOpacity
@@ -141,12 +167,12 @@ export default function TodayScreen() {
           },
         ]}
         onPress={() => {
-          // Show first available challenge of this type
-          if (typeData.available && typeData.available.length > 0) {
-            handleChallengePress(typeData.available[0]);
+          // Show next unviewed challenge of this type
+          if (nextChallenge) {
+            handleChallengePress(nextChallenge);
           }
         }}
-        disabled={isComplete}
+        disabled={isComplete || !nextChallenge}
       >
         <Text style={styles.overviewIcon}>{icon}</Text>
         <Text style={[styles.overviewTitle, { color: colors.textPrimary }]}>
@@ -251,10 +277,10 @@ export default function TodayScreen() {
           </Text>
           {todaysChallenges && todaysChallenges.challenges && (
             <View style={styles.overviewGrid}>
-              {renderQuickOverview('IRL', '🎯', todaysChallenges.challenges.irl)}
-              {renderQuickOverview('Listening', '🎧', todaysChallenges.challenges.listening)}
-              {renderQuickOverview('Fill Blank', '✏️', todaysChallenges.challenges.fill_blank)}
-              {renderQuickOverview('Multiple Choice', '📝', todaysChallenges.challenges.multiple_choice)}
+              {renderQuickOverview('IRL', '🎯', todaysChallenges.challenges.irl, 'irl')}
+              {renderQuickOverview('Listening', '🎧', todaysChallenges.challenges.listening, 'listening')}
+              {renderQuickOverview('Fill Blank', '✏️', todaysChallenges.challenges.fill_blank, 'fill_blank')}
+              {renderQuickOverview('Multiple Choice', '📝', todaysChallenges.challenges.multiple_choice, 'multiple_choice')}
             </View>
           )}
         </View>

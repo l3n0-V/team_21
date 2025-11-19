@@ -57,13 +57,24 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
       if (result.correct) {
         Alert.alert(
           "Riktig! 🎉",
-          `Bra jobbet! Du fikk ${result.xp_gained} XP`,
-          [{ text: "Fortsett", onPress: () => navigation.goBack() }]
+          `Bra jobbet! Du fikk ${result.xp_gained} XP\n\nHva vil du gjøre nå?`,
+          [
+            {
+              text: "Gå til Today",
+              onPress: () => navigation.navigate("Today"),
+              style: "default"
+            },
+            {
+              text: "Prøv en annen",
+              onPress: () => navigation.goBack(),
+              style: "cancel"
+            }
+          ]
         );
       } else {
         Alert.alert(
           "Nesten! 🤔",
-          `Ikke gi opp - oversettelse tar tid å mestre.\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}`,
+          `Ikke gi opp - oversettelse tar tid å mestre.\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}\n\nHva vil du gjøre?`,
           [
             {
               text: "Prøv igjen",
@@ -71,7 +82,13 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
                 setSubmitted(false);
                 setSelectedAnswer(null);
               },
+              style: "cancel"
             },
+            {
+              text: "Gå til Today",
+              onPress: () => navigation.navigate("Today"),
+              style: "default"
+            }
           ]
         );
       }

@@ -24,6 +24,16 @@ LEVELS = {
     3: "advanced"
 }
 
+# CEFR level to difficulty mapping
+CEFR_TO_DIFFICULTY = {
+    "A1": 1,
+    "A2": 1,
+    "B1": 2,
+    "B2": 2,
+    "C1": 3,
+    "C2": 3
+}
+
 
 def _get_example_challenge(difficulty, topic):
     """Get an example challenge for the AI to follow."""
@@ -333,7 +343,7 @@ def generate_challenges_batch(
         count: int - Number of challenges to generate
         difficulty_mix: dict - e.g., {1: 3, 2: 1, 3: 1} means 3 easy, 1 medium, 1 hard
         topic_mix: list - List of topics to use (random if None)
-        challenge_types: list - ["pronunciation", "listening"] (both if None)
+        challenge_types: list - ["pronunciation", "listening", "fill_blank", "multiple_choice"] (all if None)
 
     Returns:
         list - List of generated challenge dicts
@@ -351,7 +361,7 @@ def generate_challenges_batch(
 
     # Default challenge types
     if challenge_types is None:
-        challenge_types = ["pronunciation", "listening"]
+        challenge_types = ["pronunciation", "listening", "fill_blank", "multiple_choice"]
 
     # Build list of difficulties to generate
     difficulties = []
@@ -374,8 +384,15 @@ def generate_challenges_batch(
         try:
             if challenge_type == "pronunciation":
                 challenge = generate_pronunciation_challenge(difficulty, topic, frequency)
-            else:
+            elif challenge_type == "listening":
                 challenge = generate_listening_challenge(difficulty, topic, frequency)
+            elif challenge_type == "fill_blank":
+                challenge = generate_fill_blank_challenge(difficulty, topic, frequency)
+            elif challenge_type == "multiple_choice":
+                challenge = generate_multiple_choice_challenge(difficulty, topic, frequency)
+            else:
+                print(f"  ✗ Unknown challenge type: {challenge_type}")
+                continue
 
             challenges.append(challenge)
             print(f"  ✓ Generated: {challenge.get('title', 'Unknown')}")
@@ -409,6 +426,233 @@ def save_challenges_to_firestore(challenges):
             continue
 
     return saved_ids
+
+
+def generate_fill_blank_challenge(difficulty=1, topic=None, frequency="daily"):
+    """
+    Generate a single fill-in-the-blank challenge using Ollama.
+
+    Args:
+        difficulty: int (1-3) - Challenge difficulty
+        topic: str - Topic for the challenge (random if None)
+        frequency: str - "daily", "weekly", or "monthly"
+
+    Returns:
+        dict - Generated challenge data
+    """
+    import random
+
+    if topic is None:
+        topic = random.choice(TOPICS)
+
+    level = LEVELS.get(difficulty, "beginner")
+
+    prompt = f"""You must generate ONLY valid JSON. No explanations, no markdown, no code blocks.
+
+Topic: {topic}
+Difficulty: {difficulty} (1=beginner, 2=intermediate, 3=advanced)
+Frequency: {frequency}
+
+Create a Norwegian fill-in-the-blank challenge where:
+- sentence is a Norwegian sentence with ONE word replaced by ___
+- missing_word is the correct word (Norwegian)
+- Use Norwegian Bokmål
+- Culturally relevant to Norway
+- {"Simple common words (1-2 syllables)" if difficulty == 1 else "Moderate vocabulary (2-3 syllables)" if difficulty == 2 else "Advanced vocabulary and expressions"}
+
+EXAMPLE OUTPUT:
+{{
+  "type": "fill_blank",
+  "title": "Complete the sentence",
+  "title_no": "Fullfør setningen",
+  "description": "Fill in the missing Norwegian word",
+  "description_no": "Fyll inn det manglende norske ordet",
+  "sentence": "Jeg vil gjerne ha en ___ takk",
+  "missing_word": "kaffe",
+  "difficulty": 1,
+  "frequency": "daily",
+  "level": "beginner",
+  "age_group": "all",
+  "topic": "cafe",
+  "xp_reward": 10
+}}
+
+Generate similar valid JSON for topic "{topic}" and difficulty {difficulty}. Output ONLY the JSON object:"""
+
+    try:
+        response = ollama.chat(
+            model='llama3.2',
+            messages=[
+                {
+                    'role': 'system',
+                    'content': 'You are a JSON generator. You ONLY output valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON object.'
+                },
+                {
+                    'role': 'user',
+                    'content': prompt
+                }
+            ],
+            options={'temperature': 0.3}
+        )
+
+        content = response['message']['content'].strip()
+
+        # Clean JSON response
+        if content.startswith('```json'):
+            content = content[7:]
+        if content.startswith('```'):
+            content = content[3:]
+        if content.endswith('```'):
+            content = content[:-3]
+        content = content.strip()
+
+        import re
+        first_brace = content.find('{')
+        last_brace = content.rfind('}')
+        if first_brace != -1 and last_brace != -1:
+            content = content[first_brace:last_brace + 1]
+
+        content = re.sub(r',(\s*[}\]])', r'\1', content)
+        content = content.replace('**', '')
+        content = re.sub(r'(?<!\\)\n', ' ', content)
+
+        if content.count('{') > content.count('}'):
+            content += '}'
+
+        challenge_data = json.loads(content)
+
+        # Validate required fields
+        required_fields = ['type', 'title', 'description', 'sentence', 'missing_word']
+        for field in required_fields:
+            if field not in challenge_data:
+                raise ValueError(f"Missing required field: {field}")
+
+        return challenge_data
+
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON response: {e}")
+        print(f"Raw response: {content}")
+        raise ValueError(f"Invalid JSON from AI: {e}")
+    except Exception as e:
+        print(f"Error generating challenge: {e}")
+        raise
+
+
+def generate_multiple_choice_challenge(difficulty=1, topic=None, frequency="daily"):
+    """
+    Generate a single multiple choice challenge using Ollama.
+
+    Args:
+        difficulty: int (1-3) - Challenge difficulty
+        topic: str - Topic for the challenge (random if None)
+        frequency: str - "daily", "weekly", or "monthly"
+
+    Returns:
+        dict - Generated challenge data
+    """
+    import random
+
+    if topic is None:
+        topic = random.choice(TOPICS)
+
+    level = LEVELS.get(difficulty, "beginner")
+
+    prompt = f"""You must generate ONLY valid JSON. No explanations, no markdown, no code blocks.
+
+Topic: {topic}
+Difficulty: {difficulty} (1=beginner, 2=intermediate, 3=advanced)
+Frequency: {frequency}
+
+Create a Norwegian multiple choice translation challenge where:
+- prompt is an English phrase
+- 4 Norwegian translation options (only 1 correct, 3 plausible wrong answers)
+- Use Norwegian Bokmål
+- Culturally relevant to Norway
+- {"Simple phrases (1-3 words)" if difficulty == 1 else "Moderate phrases (4-6 words)" if difficulty == 2 else "Complex phrases (7+ words)"}
+
+EXAMPLE OUTPUT:
+{{
+  "type": "multiple_choice",
+  "title": "Translate to Norwegian",
+  "title_no": "Oversett til norsk",
+  "description": "Choose the correct Norwegian translation",
+  "description_no": "Velg riktig norsk oversettelse",
+  "prompt": "Good morning",
+  "options": ["God morgen", "God kveld", "God natt", "God dag"],
+  "correct_answer": 0,
+  "difficulty": 1,
+  "frequency": "daily",
+  "level": "beginner",
+  "age_group": "all",
+  "topic": "social",
+  "xp_reward": 10
+}}
+
+Generate similar valid JSON for topic "{topic}" and difficulty {difficulty}. Output ONLY the JSON object:"""
+
+    try:
+        response = ollama.chat(
+            model='llama3.2',
+            messages=[
+                {
+                    'role': 'system',
+                    'content': 'You are a JSON generator. You ONLY output valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON object.'
+                },
+                {
+                    'role': 'user',
+                    'content': prompt
+                }
+            ],
+            options={'temperature': 0.3}
+        )
+
+        content = response['message']['content'].strip()
+
+        # Clean JSON response
+        if content.startswith('```json'):
+            content = content[7:]
+        if content.startswith('```'):
+            content = content[3:]
+        if content.endswith('```'):
+            content = content[:-3]
+        content = content.strip()
+
+        import re
+        first_brace = content.find('{')
+        last_brace = content.rfind('}')
+        if first_brace != -1 and last_brace != -1:
+            content = content[first_brace:last_brace + 1]
+
+        content = re.sub(r',(\s*[}\]])', r'\1', content)
+        content = content.replace('**', '')
+        content = re.sub(r'(?<!\\)\n', ' ', content)
+
+        if content.count('{') > content.count('}'):
+            content += '}'
+
+        challenge_data = json.loads(content)
+
+        # Validate required fields
+        required_fields = ['type', 'title', 'description', 'prompt', 'options', 'correct_answer']
+        for field in required_fields:
+            if field not in challenge_data:
+                raise ValueError(f"Missing required field: {field}")
+
+        if len(challenge_data['options']) != 4:
+            raise ValueError("Must have exactly 4 options")
+
+        if not (0 <= challenge_data['correct_answer'] <= 3):
+            raise ValueError("correct_answer must be 0-3")
+
+        return challenge_data
+
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON response: {e}")
+        print(f"Raw response: {content}")
+        raise ValueError(f"Invalid JSON from AI: {e}")
+    except Exception as e:
+        print(f"Error generating challenge: {e}")
+        raise
 
 
 def generate_and_save_challenges(

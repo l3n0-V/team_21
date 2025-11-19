@@ -668,6 +668,29 @@ def get_todays_challenges():
         return jsonify({"error": "Failed to fetch challenges"}), 500
 
 
+@app.post("/api/challenges/generate")
+@require_auth
+def generate_challenges():
+    """
+    Generate new challenges for the authenticated user based on their CEFR level.
+    Uses AI to create personalized challenges with appropriate difficulty.
+    """
+    from services_challenges import generate_challenges_for_user
+
+    uid = request.user["uid"]
+    body = request.get_json(force=True) if request.data else {}
+
+    count = body.get("count", 5)  # Default to 5 challenges
+    challenge_types = body.get("types", None)  # None = all types
+
+    try:
+        result = generate_challenges_for_user(uid, count=count, challenge_types=challenge_types)
+        return jsonify(result), 200
+    except Exception as e:
+        logger.error(f"Error generating challenges for user {uid}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.post("/api/challenges/submit")
 @require_auth
 def submit_challenge():

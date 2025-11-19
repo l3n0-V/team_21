@@ -227,6 +227,25 @@ export function ChallengeProvider({ children }) {
     }
   }, [loadTodaysChallenges]);
 
+  // Generate new challenges using AI
+  const generateNewChallenges = useCallback(async (token, count = 5, types = null) => {
+    if (!token) throw new Error("Authentication required");
+
+    try {
+      console.log("Generating new challenges...", { count, types });
+      const result = await api.generateChallenges(token, count, types);
+
+      // Reload today's challenges to include newly generated ones
+      await loadTodaysChallenges(token);
+
+      console.log("Challenges generated successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("Failed to generate challenges:", error);
+      throw error;
+    }
+  }, [loadTodaysChallenges]);
+
   useEffect(() => {
     const loadChallenges = async () => {
       setLoading(true);
@@ -301,6 +320,7 @@ export function ChallengeProvider({ children }) {
     loadUserProgress,
     submitChallenge,
     submitIRLChallenge,
+    generateNewChallenges,
   };
 
   return <ChallengeContext.Provider value={value}>{children}</ChallengeContext.Provider>;
