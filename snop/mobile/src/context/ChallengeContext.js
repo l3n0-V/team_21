@@ -144,6 +144,21 @@ export function ChallengeProvider({ children }) {
       console.log("User progress loaded:", data);
     } catch (error) {
       console.error("Failed to load user progress:", error);
+      // Set default state to prevent TypeErrors when accessing properties
+      setUserProgress({
+        current_level: 'A1',
+        progress: {
+          A1: {
+            name: 'Beginner',
+            completed: 0,
+            required: 20,
+            percentage: 0,
+            unlocked: true,
+            is_current: true
+          }
+        },
+        recent_completions: []
+      });
     }
   }, []);
 

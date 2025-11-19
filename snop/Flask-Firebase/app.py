@@ -882,18 +882,42 @@ def get_user_progress():
     """
     Get user's CEFR progression and roadmap status.
     """
-    from services_cefr import get_roadmap_status
+    from services_cefr import get_roadmap_status, initialize_user_cefr_progress
     from services_daily_progress import get_user_recent_completions
 
     uid = request.user["uid"]
 
     try:
         roadmap = get_roadmap_status(uid)
+
+        # Initialize CEFR progress for new users
+        if not roadmap:
+            logger.info(f"Initializing CEFR progress for new user {uid}")
+            initialize_user_cefr_progress(uid)
+            roadmap = get_roadmap_status(uid)
+
+        # If still None after initialization, return default structure
+        if not roadmap:
+            logger.warning(f"Failed to initialize CEFR progress for user {uid}, returning defaults")
+            roadmap = {
+                "current_level": "A1",
+                "levels": {
+                    "A1": {
+                        "name": "Beginner",
+                        "completed": 0,
+                        "required": 20,
+                        "percentage": 0,
+                        "unlocked": True,
+                        "is_current": True
+                    }
+                }
+            }
+
         recent_completions = get_user_recent_completions(uid, limit=10)
 
         response = {
-            "current_level": roadmap.get("current_level"),
-            "progress": roadmap.get("levels"),
+            "current_level": roadmap.get("current_level", "A1"),
+            "progress": roadmap.get("levels", {}),
             "recent_completions": recent_completions
         }
 

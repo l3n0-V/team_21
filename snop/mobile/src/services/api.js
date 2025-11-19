@@ -3,6 +3,14 @@ import { USE_MOCK, API_BASE_URL } from '../../shared/config/endpoints';
 import feed from '../data/challenges.json';
 import profile from '../data/profile.json';
 
+// Log API configuration on module load
+if (__DEV__) {
+  console.log('==================================================');
+  console.log('[API Config] USE_MOCK:', USE_MOCK);
+  console.log('[API Config] API_BASE_URL:', API_BASE_URL);
+  console.log('==================================================');
+}
+
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const MockAdapter = {
@@ -285,22 +293,19 @@ const HttpAdapter = {
   RETRY_DELAY: 1000, // 1 second base delay
 
   // Helper to create fetch with timeout
+  // Note: React Native's fetch doesn't fully support AbortController.signal
+  // Using Promise.race() instead for compatibility
   async fetchWithTimeout(url, options = {}) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.TIMEOUT);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Request timeout after ${this.TIMEOUT / 1000}s`)), this.TIMEOUT)
+    );
+
+    const fetchPromise = fetch(url, options);
 
     try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
       return response;
     } catch (error) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout after ${this.TIMEOUT / 1000}s`);
-      }
       throw error;
     }
   },
@@ -490,7 +495,9 @@ const HttpAdapter = {
   },
   async getUserStats(token) {
     return this.retryFetch(async () => {
-      const res = await this.fetchWithTimeout(`${API_BASE_URL}/userStats`, {
+      const url = `${API_BASE_URL}/userStats`;
+      if (__DEV__) console.log('[API] GET', url);
+      const res = await this.fetchWithTimeout(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -511,7 +518,9 @@ const HttpAdapter = {
 
   async getTodaysChallenges(token) {
     return this.retryFetch(async () => {
-      const res = await this.fetchWithTimeout(`${API_BASE_URL}/api/challenges/today`, {
+      const url = `${API_BASE_URL}/api/challenges/today`;
+      if (__DEV__) console.log('[API] GET', url);
+      const res = await this.fetchWithTimeout(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

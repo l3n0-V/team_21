@@ -169,32 +169,32 @@ export default function TodayScreen() {
         </View>
 
         {/* User Progress Card */}
-        {userProgress && (
+        {userProgress && userProgress.progress && (
           <View style={[styles.progressCard, { backgroundColor: colors.primary }]}>
             <Text style={styles.progressCardTitle}>
-              🏆 Your Level: {userProgress.current_level} {userProgress.progress[userProgress.current_level]?.name}
+              🏆 Your Level: {userProgress.current_level} {userProgress.progress?.[userProgress.current_level]?.name || ''}
             </Text>
-            {userProgress.progress[userProgress.current_level] && (
+            {userProgress.progress?.[userProgress.current_level] && (
               <>
                 <Text style={styles.progressCardSubtitle}>
-                  Progress: {userProgress.progress[userProgress.current_level].completed}/
-                  {userProgress.progress[userProgress.current_level].required} ({userProgress.progress[userProgress.current_level].percentage}%)
+                  Progress: {userProgress.progress[userProgress.current_level]?.completed || 0}/
+                  {userProgress.progress[userProgress.current_level]?.required || 0} ({userProgress.progress[userProgress.current_level]?.percentage || 0}%)
                 </Text>
                 <View style={styles.progressBarContainer}>
                   <View
                     style={[
                       styles.progressBar,
-                      { backgroundColor: '#FFF', width: `${userProgress.progress[userProgress.current_level].percentage}%` }
+                      { backgroundColor: '#FFF', width: `${userProgress.progress[userProgress.current_level]?.percentage || 0}%` }
                     ]}
                   />
                 </View>
                 <Text style={styles.progressCardNext}>
-                  → Next: {Object.keys(userProgress.progress).find(key =>
-                    userProgress.progress[key].percentage === 0 &&
-                    !userProgress.progress[key].is_current
-                  )} {Object.values(userProgress.progress).find(level =>
-                    level.percentage === 0 &&
-                    !level.is_current
+                  → Next: {Object.keys(userProgress.progress || {}).find(key =>
+                    userProgress.progress[key]?.percentage === 0 &&
+                    !userProgress.progress[key]?.is_current
+                  ) || ''} {Object.values(userProgress.progress || {}).find(level =>
+                    level?.percentage === 0 &&
+                    !level?.is_current
                   )?.name || 'Mastery'}
                 </Text>
               </>

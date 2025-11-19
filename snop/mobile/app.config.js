@@ -13,7 +13,17 @@ export default {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.team21.snop"
+    bundleIdentifier: "com.team21.snop",
+    // Allow HTTP connections for local development/testing
+    // IMPORTANT: Remove or restrict this for production deployment!
+    infoPlist: {
+      NSAppTransportSecurity: {
+        // Allow HTTP for localhost and local IP addresses (development/testing)
+        NSAllowsLocalNetworking: true,
+        // Allow arbitrary HTTP loads (needed for teacher testing on physical devices)
+        NSAllowsArbitraryLoads: true
+      }
+    }
   },
   android: {
     package: "com.team21.snop",
