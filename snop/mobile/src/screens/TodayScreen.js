@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,18 +6,24 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView
+  SafeAreaView,
+  Dimensions
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useChallenges } from '../context/ChallengeContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import SwipeableCard from '../components/SwipeableCard';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function TodayScreen() {
   const navigation = useNavigation();
   const { todaysChallenges, userProgress, loadTodaysChallenges, loadUserProgress, loading } = useChallenges();
   const { token, user } = useAuth();
   const { colors } = useTheme();
+  const [featuredChallenges, setFeaturedChallenges] = useState([]);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   useEffect(() => {
     if (token) {
@@ -25,6 +31,23 @@ export default function TodayScreen() {
       loadUserProgress(token);
     }
   }, [token]);
+
+  // Set featured challenges when todaysChallenges loads
+  useEffect(() => {
+    if (todaysChallenges && todaysChallenges.challenges) {
+      // Get all available challenges across all types
+      const allChallenges = [];
+      Object.values(todaysChallenges.challenges).forEach(typeData => {
+        if (typeData?.available && typeData.can_complete_more) {
+          allChallenges.push(...typeData.available.filter(c => !c.completed));
+        }
+      });
+
+      // Take first 5 as featured challenges
+      setFeaturedChallenges(allChallenges.slice(0, 5));
+      setCurrentCardIndex(0);
+    }
+  }, [todaysChallenges]);
 
   if (!user) {
     return (
@@ -74,6 +97,18 @@ export default function TodayScreen() {
     }
   };
 
+  const handleSwipeLeft = (challenge) => {
+    // Skip challenge - move to next
+    if (currentCardIndex < featuredChallenges.length - 1) {
+      setCurrentCardIndex(currentCardIndex + 1);
+    }
+  };
+
+  const handleSwipeRight = (challenge) => {
+    // Accept challenge - navigate to it
+    handleChallengePress(challenge);
+  };
+
   const renderProgressBar = (completed, required) => {
     const percentage = Math.min((completed / required) * 100, 100);
     return (
@@ -88,67 +123,66 @@ export default function TodayScreen() {
     );
   };
 
-  const renderChallengeTypeSection = (title, icon, typeData, typeKey) => {
-    if (!typeData || !typeData.available || typeData.available.length === 0) {
-      return null;
-    }
+  const renderQuickOverview = (title, icon, typeData) => {
+    if (!typeData) return null;
 
-    const { available, completed_today, limit, can_complete_more } = typeData;
-    const isLimitReached = limit > 0 && !can_complete_more;
+    const { completed_today = 0, limit = 0, can_complete_more } = typeData;
+    const isComplete = limit > 0 && !can_complete_more;
+    const percentage = limit > 0 ? Math.min((completed_today / limit) * 100, 100) : 0;
 
     return (
-      <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionIcon}>{icon}</Text>
-          <View style={styles.sectionHeaderText}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {title}
-            </Text>
-            <Text style={[styles.completionText, { color: colors.textSecondary }]}>
-              {completed_today}/{limit === -1 ? '∞' : limit} today
-            </Text>
-          </View>
-        </View>
-
-        {limit > 0 && renderProgressBar(completed_today, limit)}
-
-        {isLimitReached ? (
-          <View style={[styles.limitReachedContainer, { backgroundColor: colors.warning + '20' }]}>
-            <Text style={[styles.limitReachedText, { color: colors.warning }]}>
-              ✓ Complete! Come back tomorrow
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.challengesList}>
-            {available.slice(0, 3).map((challenge, index) => (
-              <TouchableOpacity
-                key={challenge.id || index}
-                style={[styles.challengeCard, { borderColor: colors.border }]}
-                onPress={() => handleChallengePress(challenge)}
-              >
-                <View style={styles.challengeCardContent}>
-                  <Text style={[styles.challengeTitle, { color: colors.textPrimary }]}>
-                    {challenge.title_no || challenge.title}
-                  </Text>
-                  {challenge.title_no && challenge.title && (
-                    <Text style={[styles.challengeSubtitle, { color: colors.textSecondary }]}>
-                      {challenge.title}
-                    </Text>
-                  )}
-                </View>
-                <Text style={[styles.arrow, { color: colors.primary }]}>→</Text>
-              </TouchableOpacity>
-            ))}
-            {available.length > 3 && (
-              <Text style={[styles.moreText, { color: colors.textSecondary }]}>
-                +{available.length - 3} more available
-              </Text>
-            )}
+      <TouchableOpacity
+        key={title}
+        style={[
+          styles.overviewCard,
+          {
+            backgroundColor: isComplete ? colors.success + '20' : colors.backgroundSecondary,
+            borderColor: isComplete ? colors.success : colors.border,
+          },
+        ]}
+        onPress={() => {
+          // Show first available challenge of this type
+          if (typeData.available && typeData.available.length > 0) {
+            handleChallengePress(typeData.available[0]);
+          }
+        }}
+        disabled={isComplete}
+      >
+        <Text style={styles.overviewIcon}>{icon}</Text>
+        <Text style={[styles.overviewTitle, { color: colors.textPrimary }]}>
+          {title}
+        </Text>
+        <Text style={[styles.overviewProgress, { color: colors.textSecondary }]}>
+          {completed_today}/{limit === -1 ? '∞' : limit}
+        </Text>
+        {isComplete && (
+          <View style={[styles.completeBadge, { backgroundColor: colors.success }]}>
+            <Text style={styles.completeText}>✓</Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
+
+  // Calculate total progress for today
+  const calculateTodayProgress = () => {
+    if (!todaysChallenges?.challenges) return { completed: 0, total: 0, percentage: 0 };
+
+    let totalCompleted = 0;
+    let totalAvailable = 0;
+
+    Object.values(todaysChallenges.challenges).forEach(typeData => {
+      if (typeData?.limit && typeData.limit > 0) {
+        totalCompleted += typeData.completed_today || 0;
+        totalAvailable += typeData.limit;
+      }
+    });
+
+    const percentage = totalAvailable > 0 ? Math.round((totalCompleted / totalAvailable) * 100) : 0;
+    return { completed: totalCompleted, total: totalAvailable, percentage };
+  };
+
+  const todayProgress = calculateTodayProgress();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -156,61 +190,74 @@ export default function TodayScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-            📅 Today's Challenges
+            Today's Challenges
           </Text>
           <Text style={[styles.headerDate, { color: colors.textSecondary }]}>
             {new Date().toLocaleDateString('en-US', {
               weekday: 'long',
-              year: 'numeric',
               month: 'long',
               day: 'numeric'
             })}
           </Text>
         </View>
 
-        {/* User Progress Card */}
-        {userProgress && userProgress.progress && (
-          <View style={[styles.progressCard, { backgroundColor: colors.primary }]}>
-            <Text style={styles.progressCardTitle}>
-              🏆 Your Level: {userProgress.current_level} {userProgress.progress?.[userProgress.current_level]?.name || ''}
+        {/* Today's Progress Summary */}
+        <View style={[styles.progressSummary, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+          <View style={styles.progressSummaryHeader}>
+            <Text style={[styles.progressSummaryTitle, { color: colors.textPrimary }]}>
+              Today's Progress
             </Text>
-            {userProgress.progress?.[userProgress.current_level] && (
-              <>
-                <Text style={styles.progressCardSubtitle}>
-                  Progress: {userProgress.progress[userProgress.current_level]?.completed || 0}/
-                  {userProgress.progress[userProgress.current_level]?.required || 0} ({userProgress.progress[userProgress.current_level]?.percentage || 0}%)
-                </Text>
-                <View style={styles.progressBarContainer}>
-                  <View
-                    style={[
-                      styles.progressBar,
-                      { backgroundColor: '#FFF', width: `${userProgress.progress[userProgress.current_level]?.percentage || 0}%` }
-                    ]}
-                  />
-                </View>
-                <Text style={styles.progressCardNext}>
-                  → Next: {Object.keys(userProgress.progress || {}).find(key =>
-                    userProgress.progress[key]?.percentage === 0 &&
-                    !userProgress.progress[key]?.is_current
-                  ) || ''} {Object.values(userProgress.progress || {}).find(level =>
-                    level?.percentage === 0 &&
-                    !level?.is_current
-                  )?.name || 'Mastery'}
-                </Text>
-              </>
-            )}
+            <Text style={[styles.progressSummaryValue, { color: colors.primary }]}>
+              {todayProgress.completed}/{todayProgress.total}
+            </Text>
+          </View>
+          <View style={[styles.progressBarContainer, { backgroundColor: colors.border }]}>
+            <View
+              style={[
+                styles.progressBar,
+                { backgroundColor: colors.primary, width: `${todayProgress.percentage}%` }
+              ]}
+            />
+          </View>
+          <Text style={[styles.progressSummarySubtext, { color: colors.textSecondary }]}>
+            {todayProgress.percentage}% completed
+          </Text>
+        </View>
+
+        {/* Featured Challenge Card */}
+        {featuredChallenges.length > 0 && currentCardIndex < featuredChallenges.length && (
+          <View style={styles.featuredSection}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              FEATURED CHALLENGE
+            </Text>
+            <View style={styles.cardContainer}>
+              <SwipeableCard
+                challenge={featuredChallenges[currentCardIndex]}
+                onSwipeLeft={handleSwipeLeft}
+                onSwipeRight={handleSwipeRight}
+                onPress={() => handleChallengePress(featuredChallenges[currentCardIndex])}
+              />
+              <Text style={[styles.swipeHint, { color: colors.textSecondary }]}>
+                Swipe right to start • Swipe left to skip
+              </Text>
+            </View>
           </View>
         )}
 
-        {/* Challenge Sections */}
-        {todaysChallenges && todaysChallenges.challenges && (
-          <>
-            {renderChallengeTypeSection('IRL Challenge', '🎯', todaysChallenges.challenges.irl, 'irl')}
-            {renderChallengeTypeSection('Listening', '🎧', todaysChallenges.challenges.listening, 'listening')}
-            {renderChallengeTypeSection('Fill the Blank', '✏️', todaysChallenges.challenges.fill_blank, 'fill_blank')}
-            {renderChallengeTypeSection('Multiple Choice', '📝', todaysChallenges.challenges.multiple_choice, 'multiple_choice')}
-          </>
-        )}
+        {/* Quick Overview */}
+        <View style={styles.overviewSection}>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            QUICK OVERVIEW
+          </Text>
+          {todaysChallenges && todaysChallenges.challenges && (
+            <View style={styles.overviewGrid}>
+              {renderQuickOverview('IRL', '🎯', todaysChallenges.challenges.irl)}
+              {renderQuickOverview('Listening', '🎧', todaysChallenges.challenges.listening)}
+              {renderQuickOverview('Fill Blank', '✏️', todaysChallenges.challenges.fill_blank)}
+              {renderQuickOverview('Multiple Choice', '📝', todaysChallenges.challenges.multiple_choice)}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -230,116 +277,119 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 40,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     marginBottom: 4,
   },
   headerDate: {
     fontSize: 14,
   },
-  progressCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
+  progressSummary: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 32,
   },
-  progressCardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 8,
-  },
-  progressCardSubtitle: {
-    fontSize: 14,
-    color: '#FFF',
-    opacity: 0.9,
-    marginBottom: 8,
-  },
-  progressCardNext: {
-    fontSize: 12,
-    color: '#FFF',
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  section: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  sectionHeader: {
+  progressSummaryHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionIcon: {
+  progressSummaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  progressSummaryValue: {
     fontSize: 24,
-    marginRight: 12,
+    fontWeight: '800',
   },
-  sectionHeaderText: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  completionText: {
+  progressSummarySubtext: {
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 8,
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: 'rgba(0,0,0,0.1)',
     borderRadius: 4,
-    marginBottom: 12,
+    marginBottom: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
     borderRadius: 4,
   },
-  limitReachedContainer: {
-    padding: 12,
-    borderRadius: 8,
+  featuredSection: {
+    marginBottom: 32,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 16,
+  },
+  cardContainer: {
+    height: 440,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  limitReachedText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  challengesList: {
-    gap: 8,
-  },
-  challengeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  challengeCardContent: {
-    flex: 1,
-  },
-  challengeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  challengeSubtitle: {
-    fontSize: 12,
-  },
-  arrow: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  moreText: {
+  swipeHint: {
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 16,
+  },
+  overviewSection: {
+    marginBottom: 20,
+  },
+  overviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  overviewCard: {
+    flex: 1,
+    minWidth: '47%',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 140,
+    position: 'relative',
+  },
+  overviewIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  overviewTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  overviewProgress: {
+    fontSize: 12,
+  },
+  completeBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completeText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   loadingText: {
     marginTop: 12,
