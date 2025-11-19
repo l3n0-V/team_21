@@ -363,7 +363,11 @@ def get_todays_challenges_for_user(uid):
     Returns:
         dict - Available challenges by type with completion status
     """
-    from services_daily_progress import get_challenge_completion_status, get_current_utc_date
+    from services_daily_progress import (
+        get_challenge_completion_status,
+        get_completed_challenge_ids,
+        get_current_utc_date
+    )
     from services_cefr import get_user_cefr_progress
 
     # Get user's CEFR level and progress
@@ -382,6 +386,9 @@ def get_todays_challenges_for_user(uid):
     # Get completion status for today
     completion_status = get_challenge_completion_status(uid)
 
+    # Get completed challenge IDs for today
+    completed_ids = get_completed_challenge_ids(uid)
+
     # Build response
     response = {
         "date": get_current_utc_date(),
@@ -391,9 +398,16 @@ def get_todays_challenges_for_user(uid):
 
     for challenge_type, challenges in challenges_by_type.items():
         status = completion_status.get(challenge_type, {})
+        completed_challenge_ids = set(completed_ids.get(challenge_type, []))
+
+        # Filter out already completed challenges
+        available_challenges = [
+            challenge for challenge in challenges
+            if challenge.get("id") not in completed_challenge_ids
+        ]
 
         response["challenges"][challenge_type] = {
-            "available": challenges,
+            "available": available_challenges,
             "completed_today": status.get("completed", 0),
             "limit": status.get("limit", -1),
             "can_complete_more": status.get("can_complete_more", True)

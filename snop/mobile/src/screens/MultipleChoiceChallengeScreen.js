@@ -61,7 +61,7 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
           [
             {
               text: "Gå til Today",
-              onPress: () => navigation.navigate("Today"),
+              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
               style: "default"
             },
             {
@@ -86,7 +86,7 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
             },
             {
               text: "Gå til Today",
-              onPress: () => navigation.navigate("Today"),
+              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
               style: "default"
             }
           ]

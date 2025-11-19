@@ -164,6 +164,52 @@ def record_challenge_completion(uid, challenge_id, challenge_type, challenge_cef
     return progress
 
 
+def get_completed_challenge_ids(uid, date=None):
+    """
+    Get the list of challenge IDs completed today for all challenge types.
+
+    Args:
+        uid: str - Firebase user ID
+        date: str - UTC date. If None, uses today.
+
+    Returns:
+        dict - Completed challenge IDs by type: {"listening": ["id1", "id2"], ...}
+    """
+    if date is None:
+        date = get_current_utc_date()
+
+    progress_ref = db.collection("users").document(uid).collection("daily_progress").document(date)
+    progress_doc = progress_ref.get()
+
+    completed_ids = {
+        "irl": [],
+        "listening": [],
+        "fill_blank": [],
+        "multiple_choice": [],
+        "pronunciation": []
+    }
+
+    if not progress_doc.exists:
+        return completed_ids
+
+    progress = progress_doc.to_dict()
+
+    # Get IRL challenge ID if completed
+    irl_data = progress.get("irl_completed")
+    if irl_data and irl_data.get("challenge_id"):
+        completed_ids["irl"].append(irl_data.get("challenge_id"))
+
+    # Get challenge IDs for other types
+    for challenge_type in ["listening", "fill_blank", "multiple_choice", "pronunciation"]:
+        completed_list = progress.get(f"{challenge_type}_completed", [])
+        for completion in completed_list:
+            challenge_id = completion.get("challenge_id")
+            if challenge_id:
+                completed_ids[challenge_type].append(challenge_id)
+
+    return completed_ids
+
+
 def get_challenge_completion_status(uid, date=None):
     """
     Get comprehensive completion status for all challenge types.
