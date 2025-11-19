@@ -169,8 +169,11 @@ export function ChallengeProvider({ children }) {
     try {
       const result = await api.submitChallengeAnswer(token, challengeId, userAnswer);
 
-      // Reload today's challenges to update completion status
-      await loadTodaysChallenges(token);
+      // Reload today's challenges and user progress to update all stats
+      await Promise.all([
+        loadTodaysChallenges(token),
+        loadUserProgress(token)
+      ]);
 
       // Show level-up notification if applicable
       if (result.level_up) {
@@ -186,7 +189,7 @@ export function ChallengeProvider({ children }) {
       console.error("Failed to submit challenge:", error);
       throw error;
     }
-  }, [loadTodaysChallenges]);
+  }, [loadTodaysChallenges, loadUserProgress]);
 
   // Submit IRL challenge with photo
   const submitIRLChallenge = useCallback(async (token, challengeId, photoUri, options = {}) => {
@@ -202,8 +205,11 @@ export function ChallengeProvider({ children }) {
 
       const result = await api.submitIRLChallenge(token, challengeId, photoBase64, options);
 
-      // Reload challenges
-      await loadTodaysChallenges(token);
+      // Reload challenges and user progress to update all stats
+      await Promise.all([
+        loadTodaysChallenges(token),
+        loadUserProgress(token)
+      ]);
 
       // Show level-up notification if applicable
       if (result.level_up) {
