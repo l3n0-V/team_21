@@ -29,24 +29,23 @@ def get_cefr_config():
         dict - CEFR configuration with levels and daily_config
     """
     config_ref = db.collection("config").document("cefr_roadmap")
-    config_doc = config_ref.get()
 
-    if not config_doc.exists:
-        # Initialize with defaults - high limits to encourage practice
-        default_config = {
-            "levels": DEFAULT_PROGRESSION,
-            "daily_config": {
-                "irl_limit": -1,  # unlimited
-                "listening_limit": -1,  # unlimited
-                "fill_blank_limit": -1,  # unlimited
-                "multiple_choice_limit": -1,  # unlimited
-                "pronunciation_limit": -1  # unlimited
-            }
+    # Always set unlimited limits
+    default_config = {
+        "levels": DEFAULT_PROGRESSION,
+        "daily_config": {
+            "irl_limit": -1,  # unlimited
+            "listening_limit": -1,  # unlimited
+            "fill_blank_limit": -1,  # unlimited
+            "multiple_choice_limit": -1,  # unlimited
+            "pronunciation_limit": -1  # unlimited
         }
-        config_ref.set(default_config)
-        return default_config
+    }
 
-    return config_doc.to_dict()
+    # Force update to ensure unlimited limits are set
+    config_ref.set(default_config, merge=True)
+
+    return default_config
 
 
 def initialize_user_cefr_progress(uid):
