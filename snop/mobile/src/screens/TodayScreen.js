@@ -19,11 +19,12 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function TodayScreen() {
   const navigation = useNavigation();
-  const { todaysChallenges, userProgress, loadTodaysChallenges, loadUserProgress, loading } = useChallenges();
+  const { todaysChallenges, userProgress, loadTodaysChallenges, loadUserProgress, loading, generateNewChallenges } = useChallenges();
   const { token, user } = useAuth();
   const { colors } = useTheme();
   const [featuredChallenges, setFeaturedChallenges] = useState([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [generating, setGenerating] = useState(false);
   const [viewedChallenges, setViewedChallenges] = useState({
     irl: new Set(),
     listening: new Set(),
@@ -123,6 +124,53 @@ export default function TodayScreen() {
   const handleSwipeRight = (challenge) => {
     // Accept challenge - navigate to it
     handleChallengePress(challenge);
+  };
+
+  const handleGenerateNewChallenges = async () => {
+    if (!token) {
+      Alert.alert("Error", "Please log in to generate challenges");
+      return;
+    }
+
+    Alert.alert(
+      "Generer nye utfordringer",
+      "Hvor mange nye utfordringer vil du ha?",
+      [
+        {
+          text: "5 utfordringer",
+          onPress: () => generateChallenges(5)
+        },
+        {
+          text: "10 utfordringer",
+          onPress: () => generateChallenges(10)
+        },
+        {
+          text: "Avbryt",
+          style: "cancel"
+        }
+      ]
+    );
+  };
+
+  const generateChallenges = async (count) => {
+    setGenerating(true);
+    try {
+      const result = await generateNewChallenges(token, count);
+      Alert.alert(
+        "Suksess! 🎉",
+        `${result.generated_count} nye utfordringer er tilgjengelige nå!`,
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error("Failed to generate challenges:", error);
+      Alert.alert(
+        "Feil",
+        "Kunne ikke generere nye utfordringer. Prøv igjen senere.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const renderProgressBar = (completed, required) => {
@@ -284,6 +332,29 @@ export default function TodayScreen() {
             </View>
           )}
         </View>
+
+        {/* Generate New Challenges Button */}
+        <View style={styles.generateSection}>
+          <TouchableOpacity
+            style={[styles.generateButton, { backgroundColor: colors.primary }]}
+            onPress={handleGenerateNewChallenges}
+            disabled={generating}
+          >
+            {generating ? (
+              <ActivityIndicator color={colors.textWhite} />
+            ) : (
+              <>
+                <Text style={styles.generateButtonIcon}>✨</Text>
+                <Text style={[styles.generateButtonText, { color: colors.textWhite }]}>
+                  Generer nye utfordringer
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <Text style={[styles.generateHint, { color: colors.textSecondary }]}>
+            Klikk her for å få AI-genererte utfordringer tilpasset ditt nivå
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -424,5 +495,38 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  generateSection: {
+    marginTop: 32,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  generateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  generateButtonIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  generateButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  generateHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 20,
   },
 });

@@ -32,14 +32,14 @@ def get_cefr_config():
     config_doc = config_ref.get()
 
     if not config_doc.exists:
-        # Initialize with defaults
+        # Initialize with defaults - high limits to encourage practice
         default_config = {
             "levels": DEFAULT_PROGRESSION,
             "daily_config": {
-                "irl_limit": 1,
-                "listening_limit": 3,
-                "fill_blank_limit": 3,
-                "multiple_choice_limit": 3,
+                "irl_limit": -1,  # unlimited
+                "listening_limit": -1,  # unlimited
+                "fill_blank_limit": -1,  # unlimited
+                "multiple_choice_limit": -1,  # unlimited
                 "pronunciation_limit": -1  # unlimited
             }
         }

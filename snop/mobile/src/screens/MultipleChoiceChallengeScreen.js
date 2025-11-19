@@ -55,8 +55,12 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
       }
 
       const tryAnother = async () => {
-        // Reload challenges to get updated list (without the just-completed one)
+        // Wait a bit for backend to update, then reload
+        await new Promise(resolve => setTimeout(resolve, 500));
         await loadTodaysChallenges(token);
+
+        // Wait for state to update
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Get next available multiple_choice challenge
         const multipleChoiceData = todaysChallenges?.challenges?.multiple_choice;
@@ -66,11 +70,13 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
           // Navigate to new challenge (replace current screen)
           navigation.replace("MultipleChoiceChallenge", { challenge: nextChallenge });
         } else {
-          // No more challenges available, go to Today screen
+          // No more challenges available
           Alert.alert(
             "Bra jobbet!",
-            "Du har fullført alle tilgjengelige flervalgsspørsmål for i dag!",
-            [{ text: "OK", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }]
+            "Ingen flere utfordringer tilgjengelig akkurat nå. Vil du generere nye?",
+            [
+              { text: "Gå til Today", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }
+            ]
           );
         }
       };
