@@ -19,7 +19,7 @@ import { useAuth } from "../context/AuthContext";
 export default function FillBlankChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
-  const { submitChallenge } = useChallenges();
+  const { submitChallenge, loadTodaysChallenges, todaysChallenges } = useChallenges();
   const { token } = useAuth();
   const [userAnswer, setUserAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -58,6 +58,27 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
         console.warn("Failed to update performance:", perfError);
       }
 
+      const tryAnother = async () => {
+        // Reload challenges to get updated list (without the just-completed one)
+        await loadTodaysChallenges(token);
+
+        // Get next available fill_blank challenge
+        const fillBlankData = todaysChallenges?.challenges?.fill_blank;
+        const nextChallenge = fillBlankData?.available?.[0];
+
+        if (nextChallenge && fillBlankData?.can_complete_more) {
+          // Navigate to new challenge (replace current screen)
+          navigation.replace("FillBlankChallenge", { challenge: nextChallenge });
+        } else {
+          // No more challenges available, go to Today screen
+          Alert.alert(
+            "Bra jobbet!",
+            "Du har fullført alle tilgjengelige fill-blank utfordringer for i dag!",
+            [{ text: "OK", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }]
+          );
+        }
+      };
+
       if (result.correct) {
         Alert.alert(
           "Riktig! 🎉",
@@ -70,7 +91,7 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
             },
             {
               text: "Prøv en annen",
-              onPress: () => navigation.goBack(),
+              onPress: tryAnother,
               style: "cancel"
             }
           ]

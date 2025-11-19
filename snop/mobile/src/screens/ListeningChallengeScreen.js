@@ -17,7 +17,7 @@ import { useAuth } from "../context/AuthContext";
 export default function ListeningChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
-  const { submitChallenge } = useChallenges();
+  const { submitChallenge, loadTodaysChallenges, todaysChallenges } = useChallenges();
   const { token } = useAuth();
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -102,6 +102,27 @@ export default function ListeningChallengeScreen({ route, navigation }) {
         console.warn("Failed to update performance:", perfError);
       }
 
+      const tryAnother = async () => {
+        // Reload challenges to get updated list (without the just-completed one)
+        await loadTodaysChallenges(token);
+
+        // Get next available listening challenge
+        const listeningData = todaysChallenges?.challenges?.listening;
+        const nextChallenge = listeningData?.available?.[0];
+
+        if (nextChallenge && listeningData?.can_complete_more) {
+          // Navigate to new challenge (replace current screen)
+          navigation.replace("ListeningChallenge", { challenge: nextChallenge });
+        } else {
+          // No more challenges available, go to Today screen
+          Alert.alert(
+            "Bra jobbet!",
+            "Du har fullført alle tilgjengelige lytteøvelser for i dag!",
+            [{ text: "OK", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }]
+          );
+        }
+      };
+
       if (result.correct) {
         Alert.alert(
           "Riktig! 🎉",
@@ -114,7 +135,7 @@ export default function ListeningChallengeScreen({ route, navigation }) {
             },
             {
               text: "Prøv en annen",
-              onPress: () => navigation.goBack(),
+              onPress: tryAnother,
               style: "cancel"
             }
           ]

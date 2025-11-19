@@ -16,7 +16,7 @@ import { useAuth } from "../context/AuthContext";
 export default function MultipleChoiceChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
-  const { submitChallenge } = useChallenges();
+  const { submitChallenge, loadTodaysChallenges, todaysChallenges } = useChallenges();
   const { token } = useAuth();
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -54,6 +54,27 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
         console.warn("Failed to update performance:", perfError);
       }
 
+      const tryAnother = async () => {
+        // Reload challenges to get updated list (without the just-completed one)
+        await loadTodaysChallenges(token);
+
+        // Get next available multiple_choice challenge
+        const multipleChoiceData = todaysChallenges?.challenges?.multiple_choice;
+        const nextChallenge = multipleChoiceData?.available?.[0];
+
+        if (nextChallenge && multipleChoiceData?.can_complete_more) {
+          // Navigate to new challenge (replace current screen)
+          navigation.replace("MultipleChoiceChallenge", { challenge: nextChallenge });
+        } else {
+          // No more challenges available, go to Today screen
+          Alert.alert(
+            "Bra jobbet!",
+            "Du har fullført alle tilgjengelige flervalgsspørsmål for i dag!",
+            [{ text: "OK", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }]
+          );
+        }
+      };
+
       if (result.correct) {
         Alert.alert(
           "Riktig! 🎉",
@@ -66,7 +87,7 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
             },
             {
               text: "Prøv en annen",
-              onPress: () => navigation.goBack(),
+              onPress: tryAnother,
               style: "cancel"
             }
           ]
