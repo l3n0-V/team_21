@@ -191,8 +191,9 @@ export default function TodayScreen() {
     if (!typeData) return null;
 
     const { completed_today = 0, limit = 0, can_complete_more } = typeData;
-    const isComplete = limit > 0 && !can_complete_more;
-    const percentage = limit > 0 ? Math.min((completed_today / limit) * 100, 100) : 0;
+    const displayLimit = 3; // Show daily goal of 3
+    const isComplete = completed_today >= displayLimit;
+    const percentage = Math.min((completed_today / displayLimit) * 100, 100);
 
     // Filter out already viewed challenges
     const unviewedChallenges = (typeData.available || []).filter(challenge => {
@@ -220,14 +221,14 @@ export default function TodayScreen() {
             handleChallengePress(nextChallenge);
           }
         }}
-        disabled={isComplete || !nextChallenge}
+        disabled={!nextChallenge}
       >
         <Text style={styles.overviewIcon}>{icon}</Text>
         <Text style={[styles.overviewTitle, { color: colors.textPrimary }]}>
           {title}
         </Text>
         <Text style={[styles.overviewProgress, { color: colors.textSecondary }]}>
-          {completed_today}/{limit === -1 ? '∞' : limit}
+          {completed_today}/{displayLimit}
         </Text>
         {isComplete && (
           <View style={[styles.completeBadge, { backgroundColor: colors.success }]}>
@@ -242,18 +243,19 @@ export default function TodayScreen() {
   const calculateTodayProgress = () => {
     if (!todaysChallenges?.challenges) return { completed: 0, total: 0, percentage: 0 };
 
+    const displayLimit = 3; // Daily goal per challenge type
     let totalCompleted = 0;
-    let totalAvailable = 0;
+    const challengeTypes = ['irl', 'listening', 'fill_blank', 'multiple_choice'];
+    const totalGoal = challengeTypes.length * displayLimit; // 4 types × 3 = 12
 
     Object.values(todaysChallenges.challenges).forEach(typeData => {
-      if (typeData?.limit && typeData.limit > 0) {
+      if (typeData) {
         totalCompleted += typeData.completed_today || 0;
-        totalAvailable += typeData.limit;
       }
     });
 
-    const percentage = totalAvailable > 0 ? Math.round((totalCompleted / totalAvailable) * 100) : 0;
-    return { completed: totalCompleted, total: totalAvailable, percentage };
+    const percentage = totalGoal > 0 ? Math.round((totalCompleted / totalGoal) * 100) : 0;
+    return { completed: totalCompleted, total: totalGoal, percentage };
   };
 
   const todayProgress = calculateTodayProgress();
