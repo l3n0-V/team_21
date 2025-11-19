@@ -6,15 +6,21 @@ import {
   Pressable,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { colors } from "../styles/colors";
 import { usePerformance } from "../context/PerformanceContext";
+import { useChallenges } from "../context/ChallengeContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function MultipleChoiceChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
+  const { submitChallenge } = useChallenges();
+  const { token } = useAuth();
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (selectedAnswer === null) {
@@ -22,40 +28,60 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
       return;
     }
 
-    setSubmitted(true);
-    const isCorrect = selectedAnswer === challenge.correct_answer;
-
-    // Update performance tracking
-    try {
-      await updatePerformance({
-        challenge: challenge,
-        score: isCorrect ? 100 : 0,
-        passed: isCorrect,
-        xpEarned: isCorrect ? 10 : 0,
-      });
-    } catch (perfError) {
-      console.warn("Failed to update performance:", perfError);
+    if (!token) {
+      Alert.alert("Error", "Please log in to submit answers");
+      return;
     }
 
-    if (isCorrect) {
-      Alert.alert(
-        "Riktig! 🎉",
-        "Bra jobbet! Du fikk 10 XP",
-        [{ text: "Fortsett", onPress: () => navigation.goBack() }]
-      );
-    } else {
-      Alert.alert(
-        "Nesten! 🤔",
-        `Ikke gi opp - oversettelse tar tid å mestre.\n\nRiktig svar: ${challenge.options[challenge.correct_answer]}`,
-        [
-          {
-            text: "Prøv igjen",
-            onPress: () => {
-              setSubmitted(false);
-              setSelectedAnswer(null);
+    setLoading(true);
+
+    try {
+      // Submit to backend - send the selected option index
+      const result = await submitChallenge(token, challenge.id, selectedAnswer);
+
+      setSubmitted(true);
+      setLoading(false);
+
+      // Update local performance tracking
+      try {
+        await updatePerformance({
+          challenge: challenge,
+          score: result.correct ? 100 : 0,
+          passed: result.correct,
+          xpEarned: result.xp_gained || 0,
+        });
+      } catch (perfError) {
+        console.warn("Failed to update performance:", perfError);
+      }
+
+      if (result.correct) {
+        Alert.alert(
+          "Riktig! 🎉",
+          `Bra jobbet! Du fikk ${result.xp_gained} XP`,
+          [{ text: "Fortsett", onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert(
+          "Nesten! 🤔",
+          `Ikke gi opp - oversettelse tar tid å mestre.\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}`,
+          [
+            {
+              text: "Prøv igjen",
+              onPress: () => {
+                setSubmitted(false);
+                setSelectedAnswer(null);
+              },
             },
-          },
-        ]
+          ]
+        );
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error("Failed to submit challenge:", error);
+      Alert.alert(
+        "Error",
+        "Failed to submit answer. Please try again.",
+        [{ text: "OK" }]
       );
     }
   };

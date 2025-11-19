@@ -6,16 +6,22 @@ import {
   Pressable,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import * as Speech from "expo-speech";
 import { colors } from "../styles/colors";
 import { usePerformance } from "../context/PerformanceContext";
+import { useChallenges } from "../context/ChallengeContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function ListeningChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
+  const { submitChallenge } = useChallenges();
+  const { token } = useAuth();
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [norwegianVoice, setNorwegianVoice] = useState(null);
 
@@ -70,32 +76,60 @@ export default function ListeningChallengeScreen({ route, navigation }) {
       return;
     }
 
-    setSubmitted(true);
-    const isCorrect = selectedAnswer === challenge.correct_answer;
-
-    // Update performance tracking
-    try {
-      await updatePerformance({
-        challenge: challenge,
-        score: isCorrect ? 100 : 0,
-        passed: isCorrect,
-        xpEarned: isCorrect ? 10 : 0,
-      });
-    } catch (perfError) {
-      console.warn("Failed to update performance:", perfError);
+    if (!token) {
+      Alert.alert("Error", "Please log in to submit answers");
+      return;
     }
 
-    if (isCorrect) {
+    setLoading(true);
+
+    try {
+      // Submit to backend
+      const result = await submitChallenge(token, challenge.id, selectedAnswer);
+
+      setSubmitted(true);
+      setLoading(false);
+
+      // Update local performance tracking
+      try {
+        await updatePerformance({
+          challenge: challenge,
+          score: result.correct ? 100 : 0,
+          passed: result.correct,
+          xpEarned: result.xp_gained || 0,
+        });
+      } catch (perfError) {
+        console.warn("Failed to update performance:", perfError);
+      }
+
+      if (result.correct) {
+        Alert.alert(
+          "Riktig! 🎉",
+          `Du hørte riktig! Du fikk ${result.xp_gained} XP`,
+          [{ text: "Fortsett", onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert(
+          "Nesten! 👂",
+          `Lytting er vanskelig - dette er helt normalt!\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}`,
+          [
+            {
+              text: "Prøv igjen",
+              onPress: () => {
+                setSubmitted(false);
+                setSelectedAnswer(null);
+              },
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error("Failed to submit challenge:", error);
       Alert.alert(
-        "Riktig! 🎉",
-        "Du hørte riktig! Du fikk 10 XP",
-        [{ text: "Fortsett", onPress: () => navigation.goBack() }]
-      );
-    } else {
-      Alert.alert(
-        "Nesten! 👂",
-        `Lytting er vanskelig - dette er helt normalt!\n\nRiktig svar: ${challenge.options[challenge.correct_answer]}`,
-        [{ text: "Prøv igjen", onPress: () => setSubmitted(false) }]
+        "Error",
+        "Failed to submit answer. Please try again.",
+        [{ text: "OK" }]
       );
     }
   };
