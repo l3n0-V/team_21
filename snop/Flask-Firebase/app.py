@@ -1,5 +1,6 @@
 from flask import Flask, redirect, render_template, request, make_response, session, abort, url_for
 import secrets
+import sys
 from functools import wraps
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
@@ -322,7 +323,7 @@ def firestore_test():
 from flask import request, jsonify
 from auth_mw import require_auth
 from services_firestore import add_attempt, get_user_stats, set_weekly_verification, get_leaderboard
-from services_challenges import get_challenges_by_frequency, get_challenge_by_id, add_challenge, get_active_challenges, get_rotation_status
+from services_challenges import get_challenges_by_frequency, get_challenge_by_id, add_challenge, get_rotation_status
 from services_pronunciation import evaluate_pronunciation, mock_evaluate_pronunciation
 from services_users import register_user, get_user_profile, update_user_profile, delete_user_account
 from services_badges import check_and_award_badges, get_user_badges, get_all_badges, BADGES
@@ -331,10 +332,16 @@ from services_badges import check_and_award_badges, get_user_badges, get_all_bad
 @limiter.limit("20 per hour")
 @require_auth
 def score_daily():
+    """
+    Legacy endpoint for daily pronunciation challenges.
+    Now uses unified submit_challenge_answer logic.
+    Kept for backwards compatibility.
+    """
+    from services_challenges import submit_challenge_answer
+
     uid = request.user["uid"]
     body = request.get_json(force=True)
 
-    # Validate required fields
     challenge_id = body.get("challenge_id")
     audio_url = body.get("audio_url")
 
@@ -343,91 +350,40 @@ def score_daily():
     if not audio_url:
         return jsonify({"error": "audio_url is required"}), 400
 
-    # Get the challenge to know the target phrase
-    challenge = get_challenge_by_id(challenge_id)
-    if not challenge:
-        return jsonify({"error": "Challenge not found"}), 404
-
-    # Check if it's a daily challenge with a target phrase
-    target_phrase = challenge.get("target")
-    if not target_phrase:
-        return jsonify({"error": "This challenge doesn't have a target phrase for pronunciation"}), 400
-
-    difficulty = challenge.get("difficulty", 1)
-
-    # Check if we should use mock or real evaluation
-    use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
-
     try:
-        print(f"[PRONUNCIATION] Processing challenge {challenge_id} for user {uid}")
-        print(f"[PRONUNCIATION] Audio URL: {audio_url[:100]}...")
-        print(f"[PRONUNCIATION] Target phrase: {target_phrase}")
-        print(f"[PRONUNCIATION] Using {'MOCK' if use_mock else 'REAL WHISPER'} evaluation")
-
-        if use_mock:
-            # Use mock evaluation for testing
-            result = mock_evaluate_pronunciation(target_phrase, difficulty)
-            print(f"[PRONUNCIATION] Mock result: {result}")
-        else:
-            # Use real Whisper evaluation
-            print(f"[PRONUNCIATION] Starting Whisper transcription...")
-            result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
-            print(f"[PRONUNCIATION] Whisper result: transcription='{result.get('transcription')}', similarity={result.get('similarity')}, pass={result.get('pass')}")
-
-        # Store the attempt in Firestore
-        print(f"[PRONUNCIATION] Storing attempt in Firestore...")
-        add_attempt(uid, challenge_id, audio_url, result)
-        print(f"[PRONUNCIATION] Attempt stored successfully")
-
-        # Record in daily progress for tracking
-        from services_daily_progress import record_challenge_completion
-        cefr_level = challenge.get("cefr_level", "A1")
-        record_challenge_completion(
+        result = submit_challenge_answer(
             uid=uid,
             challenge_id=challenge_id,
-            challenge_type="pronunciation",
-            challenge_cefr_level=cefr_level,
-            xp_gained=result.get("xp_gained", 0),
-            additional_data={
-                "pass": result.get("pass"),
-                "similarity": result.get("similarity"),
-                "transcription": result.get("transcription")
-            }
+            user_answer=None,
+            audio_url=audio_url,
+            xp_multiplier=1.0  # Daily = 1x
         )
-        print(f"[PRONUNCIATION] Recorded in daily progress")
 
-        # Check and award badges
-        new_badges = check_and_award_badges(uid, result)
-        if new_badges:
-            result["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
-            print(f"[PRONUNCIATION] New badges awarded: {new_badges}")
+        if not result.get("success"):
+            return jsonify(result), 400
 
-        print(f"[PRONUNCIATION] ✓ Success! XP: {result.get('xp_gained')}, Pass: {result.get('pass')}")
         return jsonify(result), 200
 
     except Exception as e:
-        # Detailed error logging
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"[PRONUNCIATION] ✗ ERROR in score_daily:")
-        print(f"[PRONUNCIATION] Error type: {type(e).__name__}")
-        print(f"[PRONUNCIATION] Error message: {str(e)}")
-        print(f"[PRONUNCIATION] Full traceback:\n{error_details}")
-
+        logger.error(f"Error in score_daily for user {uid}: {e}")
         return jsonify({
             "error": "Failed to evaluate pronunciation",
-            "details": str(e),
-            "type": type(e).__name__
+            "details": str(e)
         }), 500
 
 @app.post("/scoreWeekly")
 @require_auth
 def score_weekly():
-    """Score a weekly pronunciation challenge with 1.5x XP multiplier."""
+    """
+    Legacy endpoint for weekly pronunciation challenges with 1.5x XP multiplier.
+    Now uses unified submit_challenge_answer logic.
+    Kept for backwards compatibility.
+    """
+    from services_challenges import submit_challenge_answer
+
     uid = request.user["uid"]
     body = request.get_json(force=True)
 
-    # Validate required fields
     challenge_id = body.get("challenge_id")
     audio_url = body.get("audio_url")
 
@@ -436,47 +392,22 @@ def score_weekly():
     if not audio_url:
         return jsonify({"error": "audio_url is required"}), 400
 
-    # Get the challenge to know the target phrase
-    challenge = get_challenge_by_id(challenge_id)
-    if not challenge:
-        return jsonify({"error": "Challenge not found"}), 404
-
-    # Check if it's a challenge with a target phrase
-    target_phrase = challenge.get("target")
-    if not target_phrase:
-        return jsonify({"error": "This challenge doesn't have a target phrase for pronunciation"}), 400
-
-    difficulty = challenge.get("difficulty", 1)
-
-    # Check if we should use mock or real evaluation
-    use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
-
     try:
-        if use_mock:
-            # Use mock evaluation for testing
-            result = mock_evaluate_pronunciation(target_phrase, difficulty)
-        else:
-            # Use real Whisper API evaluation
-            result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
+        result = submit_challenge_answer(
+            uid=uid,
+            challenge_id=challenge_id,
+            user_answer=None,
+            audio_url=audio_url,
+            xp_multiplier=1.5  # Weekly = 1.5x
+        )
 
-        # Apply 1.5x XP multiplier for weekly challenges
-        result["xp_gained"] = int(result["xp_gained"] * 1.5)
-
-        # Store the attempt in Firestore
-        add_attempt(uid, challenge_id, audio_url, result)
-
-        # Check and award badges
-        new_badges = check_and_award_badges(uid, result)
-
-        # Include new badges in response if any were earned
-        if new_badges:
-            result["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
+        if not result.get("success"):
+            return jsonify(result), 400
 
         return jsonify(result), 200
 
     except Exception as e:
-        # Log the error and return a generic error response
-        print(f"Error in score_weekly: {e}")
+        logger.error(f"Error in score_weekly for user {uid}: {e}")
         return jsonify({
             "error": "Failed to evaluate pronunciation",
             "details": str(e)
@@ -485,11 +416,16 @@ def score_weekly():
 @app.post("/scoreMonthly")
 @require_auth
 def score_monthly():
-    """Score a monthly pronunciation challenge with 2x XP multiplier."""
+    """
+    Legacy endpoint for monthly pronunciation challenges with 2x XP multiplier.
+    Now uses unified submit_challenge_answer logic.
+    Kept for backwards compatibility.
+    """
+    from services_challenges import submit_challenge_answer
+
     uid = request.user["uid"]
     body = request.get_json(force=True)
 
-    # Validate required fields
     challenge_id = body.get("challenge_id")
     audio_url = body.get("audio_url")
 
@@ -498,47 +434,22 @@ def score_monthly():
     if not audio_url:
         return jsonify({"error": "audio_url is required"}), 400
 
-    # Get the challenge to know the target phrase
-    challenge = get_challenge_by_id(challenge_id)
-    if not challenge:
-        return jsonify({"error": "Challenge not found"}), 404
-
-    # Check if it's a challenge with a target phrase
-    target_phrase = challenge.get("target")
-    if not target_phrase:
-        return jsonify({"error": "This challenge doesn't have a target phrase for pronunciation"}), 400
-
-    difficulty = challenge.get("difficulty", 1)
-
-    # Check if we should use mock or real evaluation
-    use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
-
     try:
-        if use_mock:
-            # Use mock evaluation for testing
-            result = mock_evaluate_pronunciation(target_phrase, difficulty)
-        else:
-            # Use real Whisper API evaluation
-            result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
+        result = submit_challenge_answer(
+            uid=uid,
+            challenge_id=challenge_id,
+            user_answer=None,
+            audio_url=audio_url,
+            xp_multiplier=2.0  # Monthly = 2x
+        )
 
-        # Apply 2x XP multiplier for monthly challenges
-        result["xp_gained"] = int(result["xp_gained"] * 2.0)
-
-        # Store the attempt in Firestore
-        add_attempt(uid, challenge_id, audio_url, result)
-
-        # Check and award badges
-        new_badges = check_and_award_badges(uid, result)
-
-        # Include new badges in response if any were earned
-        if new_badges:
-            result["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
+        if not result.get("success"):
+            return jsonify(result), 400
 
         return jsonify(result), 200
 
     except Exception as e:
-        # Log the error and return a generic error response
-        print(f"Error in score_monthly: {e}")
+        logger.error(f"Error in score_monthly for user {uid}: {e}")
         return jsonify({
             "error": "Failed to evaluate pronunciation",
             "details": str(e)
@@ -619,28 +530,70 @@ def create_challenge():
     challenge_id = add_challenge(body)
     return jsonify({"id": challenge_id, "message": "Challenge created successfully"}), 201
 
-# Challenge Rotation Endpoints
+# ============================================================================
+# DEPRECATED: Legacy Challenge Rotation Endpoints
+# ============================================================================
+# These endpoints are deprecated and will be removed in a future release.
+# Please use the CEFR-based challenge system instead:
+#   - GET /api/challenges/today (requires auth)
+#   - GET /api/user/progress (requires auth)
+# For backwards compatibility, these endpoints now return all challenges
+# of the given frequency instead of using the deprecated rotation system.
+# ============================================================================
+
 @app.get("/challenges/active/daily")
 def active_challenges_daily():
-    """Get currently active daily challenges (with automatic rotation)."""
-    challenges = get_active_challenges("daily")
-    return jsonify({"challenges": challenges, "frequency": "daily"}), 200
+    """
+    DEPRECATED: Use /api/challenges/today instead.
+
+    Get currently active daily challenges.
+    For backwards compatibility, returns all daily challenges from the pool.
+    """
+    challenges = get_challenges_by_frequency("daily")
+    return jsonify({
+        "challenges": challenges,
+        "frequency": "daily",
+        "deprecation_notice": "This endpoint is deprecated. Use /api/challenges/today for CEFR-based challenges."
+    }), 200
 
 @app.get("/challenges/active/weekly")
 def active_challenges_weekly():
-    """Get currently active weekly challenges (with automatic rotation)."""
-    challenges = get_active_challenges("weekly")
-    return jsonify({"challenges": challenges, "frequency": "weekly"}), 200
+    """
+    DEPRECATED: Use /api/challenges/today instead.
+
+    Get currently active weekly challenges.
+    For backwards compatibility, returns all weekly challenges from the pool.
+    """
+    challenges = get_challenges_by_frequency("weekly")
+    return jsonify({
+        "challenges": challenges,
+        "frequency": "weekly",
+        "deprecation_notice": "This endpoint is deprecated. Use /api/challenges/today for CEFR-based challenges."
+    }), 200
 
 @app.get("/challenges/active/monthly")
 def active_challenges_monthly():
-    """Get currently active monthly challenges (with automatic rotation)."""
-    challenges = get_active_challenges("monthly")
-    return jsonify({"challenges": challenges, "frequency": "monthly"}), 200
+    """
+    DEPRECATED: Use /api/challenges/today instead.
+
+    Get currently active monthly challenges.
+    For backwards compatibility, returns all monthly challenges from the pool.
+    """
+    challenges = get_challenges_by_frequency("monthly")
+    return jsonify({
+        "challenges": challenges,
+        "frequency": "monthly",
+        "deprecation_notice": "This endpoint is deprecated. Use /api/challenges/today for CEFR-based challenges."
+    }), 200
 
 @app.get("/challenges/rotation/status")
 def rotation_status():
-    """Get the current challenge rotation status for all frequencies."""
+    """
+    DEPRECATED: The rotation system is no longer used.
+
+    Get the current challenge rotation status for all frequencies.
+    Returns a simplified status with deprecation notices.
+    """
     status = get_rotation_status()
     return jsonify(status), 200
 
@@ -695,8 +648,26 @@ def generate_challenges():
 @require_auth
 def submit_challenge():
     """
-    Submit a challenge answer for scoring.
-    Handles listening, fill_blank, and multiple_choice challenges.
+    Unified endpoint to submit ANY challenge type for scoring.
+    Handles listening, fill_blank, multiple_choice, and pronunciation challenges.
+
+    Request body:
+    {
+        "challenge_id": "...",
+        "user_answer": "text" | 0-3 | null,  # For text/MC challenges (null for pronunciation)
+        "audio_url": "..."  # Required for pronunciation challenges
+    }
+
+    Response format (consistent for all types):
+    {
+        "success": true,
+        "correct": true/false,
+        "xp_gained": 10,
+        "feedback": "...",
+        "similarity": 0.85,  # For pronunciation only
+        "transcription": "...",  # For pronunciation only
+        "level_progress": {...}
+    }
     """
     from services_challenges import submit_challenge_answer
 
@@ -705,14 +676,19 @@ def submit_challenge():
 
     challenge_id = body.get("challenge_id")
     user_answer = body.get("user_answer")
+    audio_url = body.get("audio_url")
 
     if not challenge_id:
         return jsonify({"error": "challenge_id is required"}), 400
-    if user_answer is None:
-        return jsonify({"error": "user_answer is required"}), 400
 
     try:
-        result = submit_challenge_answer(uid, challenge_id, user_answer)
+        result = submit_challenge_answer(
+            uid=uid,
+            challenge_id=challenge_id,
+            user_answer=user_answer,
+            audio_url=audio_url,
+            xp_multiplier=1.0  # Default multiplier for unified endpoint
+        )
 
         if not result.get("success"):
             return jsonify(result), 400
@@ -1136,6 +1112,86 @@ def admin_generate_challenges():
         return jsonify({"error": e.message}), e.status_code
     except Exception as e:
         logger.error(f"Error generating challenges: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/admin/refill-pool")
+@require_auth
+def admin_refill_pool():
+    """
+    Refill the challenge pool with AI-generated challenges.
+    Checks each CEFR level and generates challenges if below minimum threshold.
+
+    Body (optional):
+        {
+            "min_available": 20,     // Minimum challenges per level (default: 20)
+            "batch_size": 10,        // Max to generate per level (default: 10)
+            "level": "A1",           // Specific level to refill (default: all)
+            "dry_run": false         // Preview only (default: false)
+        }
+
+    Returns:
+        {
+            "timestamp": "...",
+            "levels": {...},
+            "total_generated": 10,
+            "total_saved": 10,
+            "errors": []
+        }
+    """
+    # Import the job functions
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'jobs'))
+    from generate_pool_challenges import refill_pool, refill_single_level, check_ollama_available
+
+    try:
+        data = request.get_json() or {}
+
+        min_available = data.get('min_available', 20)
+        batch_size = data.get('batch_size', 10)
+        level = data.get('level')
+        dry_run = data.get('dry_run', False)
+
+        # Validate parameters
+        if not isinstance(min_available, int) or min_available < 1 or min_available > 100:
+            raise ValidationError("min_available must be an integer between 1 and 100")
+
+        if not isinstance(batch_size, int) or batch_size < 1 or batch_size > 50:
+            raise ValidationError("batch_size must be an integer between 1 and 50")
+
+        if level and level not in ["A1", "A2", "B1", "B2", "C1", "C2"]:
+            raise ValidationError("level must be a valid CEFR level (A1-C2)")
+
+        # Check Ollama availability (unless dry run)
+        if not dry_run:
+            if not check_ollama_available():
+                return jsonify({
+                    "error": "Ollama not available",
+                    "message": "Please ensure Ollama is running with llama3.2 model"
+                }), 503
+
+        logger.info(f"Admin refill-pool request: min={min_available}, batch={batch_size}, level={level}, dry_run={dry_run}")
+
+        # Run the refill job
+        if level:
+            result = refill_single_level(
+                level=level,
+                min_available=min_available,
+                dry_run=dry_run
+            )
+        else:
+            result = refill_pool(
+                min_available=min_available,
+                batch_size=batch_size,
+                dry_run=dry_run
+            )
+
+        return jsonify(result), 200
+
+    except ValidationError as e:
+        logger.warning(f"Validation error: {e.message}")
+        return jsonify({"error": e.message}), e.status_code
+    except Exception as e:
+        logger.error(f"Error in refill-pool: {e}")
         return jsonify({"error": str(e)}), 500
 
 

@@ -115,7 +115,7 @@ export function ChallengeProvider({ children }) {
   const loadTodaysChallenges = useCallback(async (token) => {
     if (!token) {
       console.warn("No token provided to loadTodaysChallenges");
-      return;
+      return null;
     }
 
     try {
@@ -123,9 +123,11 @@ export function ChallengeProvider({ children }) {
       const data = await api.getTodaysChallenges(token);
       setTodaysChallenges(data);
       console.log("Today's challenges loaded:", data);
+      return data; // Return fresh data for immediate use
     } catch (error) {
       console.error("Failed to load today's challenges:", error);
       Alert.alert("Error", "Failed to load today's challenges");
+      return null;
     } finally {
       setLoading(false);
     }

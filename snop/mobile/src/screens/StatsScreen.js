@@ -16,11 +16,6 @@ export default function StatsScreen() {
     }
   }, [token]);
 
-  const data = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    datasets: [{ data: [5, 9, 6, 12, 7, 10, 14] }]
-  };
-
   // Calculate stats from userProgress
   const currentLevel = userProgress?.current_level || 'A1';
   const currentLevelData = userProgress?.progress?.[currentLevel];
@@ -28,6 +23,24 @@ export default function StatsScreen() {
     .filter(level => level.percentage === 100)
     .length;
   const recentCompletions = userProgress?.recent_completions?.length || 0;
+
+  // Get weekly activity data from recent completions
+  const getWeeklyData = () => {
+    const weekData = [0, 0, 0, 0, 0, 0, 0]; // Mon-Sun
+    const completions = userProgress?.recent_completions || [];
+
+    completions.forEach(completion => {
+      if (completion.completed_at) {
+        const date = new Date(completion.completed_at);
+        const dayIndex = (date.getDay() + 6) % 7; // Convert to Mon=0, Sun=6
+        weekData[dayIndex]++;
+      }
+    });
+
+    // Ensure at least some data points for visualization
+    const hasData = weekData.some(val => val > 0);
+    return hasData ? weekData : [0, 0, 0, 0, 0, 0, 0];
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -117,8 +130,15 @@ export default function StatsScreen() {
             {Object.entries(userProgress.progress).map(([levelKey, levelData]) => {
               const isCurrentLevel = levelData.is_current;
               const isUnlocked = levelData.unlocked;
-              const icon = isUnlocked ? (isCurrentLevel ? '→' : '✓') : '🔒';
               const progressPercentage = levelData.percentage || 0;
+              const isCompleted = progressPercentage >= 100;
+              // Show checkmark for completed, pin for current/unlocked, lock for locked
+              let icon = '🔒';
+              if (isCompleted) {
+                icon = '✓';
+              } else if (isUnlocked || isCurrentLevel) {
+                icon = '📍';
+              }
 
               return (
                 <View
@@ -178,23 +198,47 @@ export default function StatsScreen() {
         {/* Weekly Activity Chart */}
         <View style={styles.chartSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            📈 Your weekly snops
+            📈 Weekly Activity
           </Text>
-          <LineChart
-            width={Dimensions.get("window").width - 48}
-            height={220}
-            data={data}
-            chartConfig={{
-              backgroundGradientFrom: colors.cardBackground || "#ffffff",
-              backgroundGradientTo: colors.cardBackground || "#ffffff",
-              color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
-              labelColor: () => colors.textPrimary || "#111827",
-              strokeWidth: 2,
-              decimalPlaces: 0
-            }}
-            style={styles.chart}
-            bezier
-          />
+          <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+            Challenges completed per day
+          </Text>
+          <View style={[styles.chartContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+            <LineChart
+              width={Dimensions.get("window").width - 64}
+              height={200}
+              data={{
+                labels: ["M", "T", "W", "T", "F", "S", "S"],
+                datasets: [{
+                  data: getWeeklyData(),
+                  strokeWidth: 2
+                }],
+                legend: ["Challenges completed"]
+              }}
+              chartConfig={{
+                backgroundGradientFrom: colors.backgroundSecondary,
+                backgroundGradientTo: colors.backgroundSecondary,
+                color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
+                labelColor: () => colors.textPrimary,
+                strokeWidth: 2,
+                decimalPlaces: 0,
+                propsForDots: {
+                  r: "4",
+                  strokeWidth: "1",
+                  stroke: "#2563eb"
+                },
+                propsForLabels: {
+                  fill: colors.textPrimary
+                }
+              }}
+              bezier
+              fromZero
+              withInnerLines={false}
+              withVerticalLabels={true}
+              withHorizontalLabels={true}
+              segments={4}
+            />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -337,8 +381,10 @@ const styles = StyleSheet.create({
   chartSection: {
     marginBottom: 24,
   },
-  chart: {
-    borderRadius: 12,
+  chartContainer: {
+    borderRadius: 16,
+    padding: 12,
     marginTop: 12,
+    borderWidth: 1,
   },
 });

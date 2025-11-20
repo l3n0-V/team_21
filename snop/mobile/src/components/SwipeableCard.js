@@ -184,15 +184,21 @@ export default function SwipeableCard({ challenge, onSwipeLeft, onSwipeRight, on
 
         {/* Content */}
         <View style={styles.cardContent}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            {challenge.title || challenge.description}
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            numberOfLines={3}
+          >
+            {challenge.title_no || challenge.title || challenge.description}
           </Text>
 
-          {challenge.prompt && (
-            <Text style={[styles.prompt, { color: colors.textSecondary }]}>
-              {challenge.prompt}
+          {challenge.description_no || challenge.description ? (
+            <Text
+              style={[styles.prompt, { color: colors.textSecondary }]}
+              numberOfLines={4}
+            >
+              {challenge.description_no || challenge.description}
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Footer */}

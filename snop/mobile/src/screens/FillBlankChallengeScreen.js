@@ -11,20 +11,28 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { colors } from "../styles/colors";
 import { usePerformance } from "../context/PerformanceContext";
 import { useChallenges } from "../context/ChallengeContext";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import FeedbackModal from "../components/FeedbackModal";
 
 export default function FillBlankChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
   const { submitChallenge, loadTodaysChallenges, todaysChallenges } = useChallenges();
   const { token } = useAuth();
+  const { colors } = useTheme();
   const [userAnswer, setUserAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackData, setFeedbackData] = useState({
+    isCorrect: false,
+    xpGained: 0,
+    message: '',
+  });
 
   const handleSubmit = async () => {
     if (!userAnswer.trim()) {
@@ -58,71 +66,20 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
         console.warn("Failed to update performance:", perfError);
       }
 
-      const tryAnother = async () => {
-        // Wait a bit for backend to update, then reload
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await loadTodaysChallenges(token);
-
-        // Wait for state to update
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        // Get next available fill_blank challenge
-        const fillBlankData = todaysChallenges?.challenges?.fill_blank;
-        const nextChallenge = fillBlankData?.available?.[0];
-
-        if (nextChallenge && fillBlankData?.can_complete_more) {
-          // Navigate to new challenge (replace current screen)
-          navigation.replace("FillBlankChallenge", { challenge: nextChallenge });
-        } else {
-          // No more challenges available
-          Alert.alert(
-            "Bra jobbet!",
-            "Ingen flere utfordringer tilgjengelig akkurat nå. Vil du generere nye?",
-            [
-              { text: "Gå til Today", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }
-            ]
-          );
-        }
-      };
-
       if (result.correct) {
-        Alert.alert(
-          "Riktig! 🎉",
-          `Flott jobbet! Du fikk ${result.xp_gained} XP\n\nHva vil du gjøre nå?`,
-          [
-            {
-              text: "Gå til Today",
-              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
-              style: "default"
-            },
-            {
-              text: "Prøv en annen",
-              onPress: tryAnother,
-              style: "cancel"
-            }
-          ]
-        );
+        setFeedbackData({
+          isCorrect: true,
+          xpGained: result.xp_gained,
+          message: 'Flott jobbet!',
+        });
       } else {
-        Alert.alert(
-          "Nesten! 💪",
-          `Dette er en vanlig feil - mange trenger flere forsøk.\n\nRiktig svar: "${result.correct_answer || challenge.missing_word}"\n\nHva vil du gjøre?`,
-          [
-            {
-              text: "Prøv igjen",
-              onPress: () => {
-                setSubmitted(false);
-                setUserAnswer("");
-              },
-              style: "cancel"
-            },
-            {
-              text: "Gå til Today",
-              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
-              style: "default"
-            }
-          ]
-        );
+        setFeedbackData({
+          isCorrect: false,
+          xpGained: 0,
+          message: `Riktig svar: "${result.correct_answer || challenge.missing_word}"`,
+        });
       }
+      setFeedbackVisible(true);
     } catch (error) {
       setLoading(false);
       console.error("Failed to submit challenge:", error);
@@ -140,9 +97,9 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
     if (parts.length !== 2) return challenge.sentence;
 
     return (
-      <Text style={styles.sentenceText}>
+      <Text style={[styles.sentenceText, { color: colors.textPrimary }]}>
         {parts[0]}
-        <Text style={styles.blankText}>
+        <Text style={[styles.blankText, { color: colors.primary }]}>
           {submitted ? challenge.missing_word : "___"}
         </Text>
         {parts[1]}
@@ -151,7 +108,7 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
@@ -160,13 +117,19 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>← Tilbake</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Tilbake</Text>
         </Pressable>
 
-        <Text style={styles.title}>{challenge.title_no || challenge.title}</Text>
-        <Text style={styles.description}>
+        <Text style={[styles.title, { color: colors.primary }]}>{challenge.title_no || challenge.title}</Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           {challenge.description_no || challenge.description}
         </Text>
+
+        {challenge.prompt && (
+          <View style={[styles.promptContainer, { backgroundColor: colors.primary + '15', borderLeftColor: colors.primary }]}>
+            <Text style={[styles.promptText, { color: colors.primary }]}>{challenge.prompt}</Text>
+          </View>
+        )}
 
         <View style={styles.sentenceContainer}>{formatSentence()}</View>
 
@@ -175,7 +138,7 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
             onPress={() => setShowHint(!showHint)}
             style={styles.hintButton}
           >
-            <Text style={styles.hintButtonText}>
+            <Text style={[styles.hintButtonText, { color: colors.primary }]}>
               {showHint ? "Skjul hint" : "Vis hint"}
             </Text>
           </Pressable>
@@ -187,16 +150,17 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
           </View>
         )}
 
-        <Text style={styles.inputLabel}>Ditt svar:</Text>
+        <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Ditt svar:</Text>
         <TextInput
           style={[
             styles.input,
-            submitted && styles.inputDisabled,
+            { backgroundColor: colors.background, borderColor: colors.border, color: colors.textPrimary },
+            submitted && [styles.inputDisabled, { backgroundColor: colors.backgroundSecondary }],
           ]}
           value={userAnswer}
           onChangeText={setUserAnswer}
           placeholder="Skriv det manglende ordet..."
-          placeholderTextColor={colors.textLight}
+          placeholderTextColor={colors.textSecondary}
           autoCapitalize="none"
           autoCorrect={true}
           spellCheck={false}
@@ -210,17 +174,42 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
             onPress={handleSubmit}
             style={[
               styles.submitButton,
-              (!userAnswer.trim() || loading) && styles.submitButtonDisabled,
+              { backgroundColor: colors.primary },
+              (!userAnswer.trim() || loading) && { opacity: 0.5 },
             ]}
             disabled={!userAnswer.trim() || loading}
           >
             {loading ? (
               <ActivityIndicator color={colors.textWhite} />
             ) : (
-              <Text style={styles.submitButtonText}>Sjekk svar</Text>
+              <Text style={[styles.submitButtonText, { color: colors.textWhite }]}>Sjekk svar</Text>
             )}
           </Pressable>
         )}
+
+        <FeedbackModal
+          visible={feedbackVisible}
+          isCorrect={feedbackData.isCorrect}
+          xpGained={feedbackData.xpGained}
+          message={feedbackData.message}
+          onTryAnother={async () => {
+            setFeedbackVisible(false);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const freshData = await loadTodaysChallenges(token);
+            const fillBlankData = freshData?.challenges?.fill_blank;
+            const nextChallenge = fillBlankData?.available?.[0];
+            if (nextChallenge && fillBlankData?.can_complete_more) {
+              navigation.replace("FillBlankChallenge", { challenge: nextChallenge });
+            } else {
+              navigation.navigate("Tabs", { screen: "Today" });
+            }
+          }}
+          onGoBack={() => {
+            setFeedbackVisible(false);
+            navigation.navigate("Tabs", { screen: "Today" });
+          }}
+          showTryAnother={true}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -229,7 +218,6 @@ export default function FillBlankChallengeScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -240,19 +228,26 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: colors.primary,
     fontWeight: "600",
   },
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: colors.primary,
     marginBottom: 8,
   },
   description: {
     fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  promptContainer: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderLeftWidth: 3,
+  },
+  promptText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
   sentenceContainer: {
     backgroundColor: "rgba(0, 40, 104, 0.05)",
@@ -262,13 +257,11 @@ const styles = StyleSheet.create({
   },
   sentenceText: {
     fontSize: 20,
-    color: colors.text,
     lineHeight: 30,
     textAlign: "center",
   },
   blankText: {
     fontWeight: "800",
-    color: colors.primary,
     backgroundColor: "rgba(0, 40, 104, 0.1)",
   },
   hintButton: {
@@ -277,7 +270,6 @@ const styles = StyleSheet.create({
   },
   hintButtonText: {
     fontSize: 14,
-    color: colors.primary,
     fontWeight: "600",
   },
   hintBox: {
@@ -293,34 +285,25 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.text,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: colors.background,
     borderWidth: 2,
-    borderColor: colors.border,
     borderRadius: 10,
     padding: 16,
     fontSize: 18,
     marginBottom: 24,
   },
   inputDisabled: {
-    backgroundColor: colors.backgroundSecondary,
     opacity: 0.7,
   },
   submitButton: {
-    backgroundColor: colors.primary,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
   },
-  submitButtonDisabled: {
-    backgroundColor: colors.textLight,
-  },
   submitButtonText: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textWhite,
   },
 });

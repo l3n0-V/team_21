@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
-import { USE_MOCK, API_BASE_URL } from "../../shared/config/endpoints";
+import { api } from "../services/api";
 
 const UserStatsContext = createContext();
 export const useUserStats = () => useContext(UserStatsContext);
@@ -25,33 +25,8 @@ export function UserStatsProvider({ children }) {
     setError(null);
 
     try {
-      if (USE_MOCK) {
-        // Mock stats for testing
-        console.log('Using mock user stats');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setStats({
-          xp_total: 245,
-          streak_days: 7,
-          last_attempt_at: new Date().toISOString()
-        });
-        return;
-      }
-
-      // Fetch real stats from backend
-      console.log('Fetching user stats from backend...');
-      const response = await fetch(`${API_BASE_URL}/userStats`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch stats: ${response.status}`);
-      }
-
-      const data = await response.json();
+      console.log('Fetching user stats...');
+      const data = await api.getUserStats(token);
       console.log('User stats received:', data);
       setStats(data);
     } catch (err) {

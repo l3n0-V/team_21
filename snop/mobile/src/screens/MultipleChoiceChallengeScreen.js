@@ -8,19 +8,27 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
-import { colors } from "../styles/colors";
 import { usePerformance } from "../context/PerformanceContext";
 import { useChallenges } from "../context/ChallengeContext";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import FeedbackModal from "../components/FeedbackModal";
 
 export default function MultipleChoiceChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
   const { submitChallenge, loadTodaysChallenges, todaysChallenges } = useChallenges();
   const { token } = useAuth();
+  const { colors } = useTheme();
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackData, setFeedbackData] = useState({
+    isCorrect: false,
+    xpGained: 0,
+    message: '',
+  });
 
   const handleSubmit = async () => {
     if (selectedAnswer === null) {
@@ -36,8 +44,9 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
     setLoading(true);
 
     try {
-      // Submit to backend - send the selected option index
-      const result = await submitChallenge(token, challenge.id, selectedAnswer);
+      // Submit to backend - send the actual option text for proper comparison
+      const selectedOption = challenge.options[selectedAnswer];
+      const result = await submitChallenge(token, challenge.id, selectedOption);
 
       setSubmitted(true);
       setLoading(false);
@@ -54,71 +63,20 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
         console.warn("Failed to update performance:", perfError);
       }
 
-      const tryAnother = async () => {
-        // Wait a bit for backend to update, then reload
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await loadTodaysChallenges(token);
-
-        // Wait for state to update
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        // Get next available multiple_choice challenge
-        const multipleChoiceData = todaysChallenges?.challenges?.multiple_choice;
-        const nextChallenge = multipleChoiceData?.available?.[0];
-
-        if (nextChallenge && multipleChoiceData?.can_complete_more) {
-          // Navigate to new challenge (replace current screen)
-          navigation.replace("MultipleChoiceChallenge", { challenge: nextChallenge });
-        } else {
-          // No more challenges available
-          Alert.alert(
-            "Bra jobbet!",
-            "Ingen flere utfordringer tilgjengelig akkurat nå. Vil du generere nye?",
-            [
-              { text: "Gå til Today", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }
-            ]
-          );
-        }
-      };
-
       if (result.correct) {
-        Alert.alert(
-          "Riktig! 🎉",
-          `Bra jobbet! Du fikk ${result.xp_gained} XP\n\nHva vil du gjøre nå?`,
-          [
-            {
-              text: "Gå til Today",
-              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
-              style: "default"
-            },
-            {
-              text: "Prøv en annen",
-              onPress: tryAnother,
-              style: "cancel"
-            }
-          ]
-        );
+        setFeedbackData({
+          isCorrect: true,
+          xpGained: result.xp_gained,
+          message: 'Bra jobbet!',
+        });
       } else {
-        Alert.alert(
-          "Nesten! 🤔",
-          `Ikke gi opp - oversettelse tar tid å mestre.\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}\n\nHva vil du gjøre?`,
-          [
-            {
-              text: "Prøv igjen",
-              onPress: () => {
-                setSubmitted(false);
-                setSelectedAnswer(null);
-              },
-              style: "cancel"
-            },
-            {
-              text: "Gå til Today",
-              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
-              style: "default"
-            }
-          ]
-        );
+        setFeedbackData({
+          isCorrect: false,
+          xpGained: 0,
+          message: `Riktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}`,
+        });
       }
+      setFeedbackVisible(true);
     } catch (error) {
       setLoading(false);
       console.error("Failed to submit challenge:", error);
@@ -131,26 +89,26 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
         <Pressable
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>← Tilbake</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Tilbake</Text>
         </Pressable>
 
-        <Text style={styles.title}>{challenge.title_no || challenge.title}</Text>
-        <Text style={styles.description}>
+        <Text style={[styles.title, { color: colors.primary }]}>{challenge.title_no || challenge.title}</Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           {challenge.description_no || challenge.description}
         </Text>
 
         <View style={styles.promptContainer}>
-          <Text style={styles.promptLabel}>Oversett:</Text>
-          <Text style={styles.promptText}>{challenge.prompt}</Text>
+          <Text style={[styles.promptLabel, { color: colors.textSecondary }]}>Oversett:</Text>
+          <Text style={[styles.promptText, { color: colors.primary }]}>{challenge.prompt}</Text>
         </View>
 
-        <Text style={styles.optionsLabel}>Velg riktig oversettelse:</Text>
+        <Text style={[styles.optionsLabel, { color: colors.textPrimary }]}>Velg riktig oversettelse:</Text>
 
         <View style={styles.optionsContainer}>
           {challenge.options.map((option, index) => (
@@ -158,7 +116,8 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
               key={index}
               style={[
                 styles.optionButton,
-                selectedAnswer === index && styles.optionSelected,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                selectedAnswer === index && [styles.optionSelected, { borderColor: colors.primary }],
                 submitted &&
                   index === challenge.correct_answer &&
                   styles.optionCorrect,
@@ -170,13 +129,14 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
               onPress={() => !submitted && setSelectedAnswer(index)}
               disabled={submitted}
             >
-              <Text style={styles.optionLetter}>
+              <Text style={[styles.optionLetter, { color: colors.textSecondary }]}>
                 {String.fromCharCode(65 + index)}.
               </Text>
               <Text
                 style={[
                   styles.optionText,
-                  selectedAnswer === index && styles.optionTextSelected,
+                  { color: colors.textPrimary },
+                  selectedAnswer === index && [styles.optionTextSelected, { color: colors.primary }],
                 ]}
               >
                 {option}
@@ -190,13 +150,38 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
             onPress={handleSubmit}
             style={[
               styles.submitButton,
-              selectedAnswer === null && styles.submitButtonDisabled,
+              { backgroundColor: colors.primary },
+              selectedAnswer === null && { opacity: 0.5 },
             ]}
             disabled={selectedAnswer === null}
           >
-            <Text style={styles.submitButtonText}>Send inn svar</Text>
+            <Text style={[styles.submitButtonText, { color: colors.textWhite }]}>Send inn svar</Text>
           </Pressable>
         )}
+
+        <FeedbackModal
+          visible={feedbackVisible}
+          isCorrect={feedbackData.isCorrect}
+          xpGained={feedbackData.xpGained}
+          message={feedbackData.message}
+          onTryAnother={async () => {
+            setFeedbackVisible(false);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const freshData = await loadTodaysChallenges(token);
+            const multipleChoiceData = freshData?.challenges?.multiple_choice;
+            const nextChallenge = multipleChoiceData?.available?.[0];
+            if (nextChallenge && multipleChoiceData?.can_complete_more) {
+              navigation.replace("MultipleChoiceChallenge", { challenge: nextChallenge });
+            } else {
+              navigation.navigate("Tabs", { screen: "Today" });
+            }
+          }}
+          onGoBack={() => {
+            setFeedbackVisible(false);
+            navigation.navigate("Tabs", { screen: "Today" });
+          }}
+          showTryAnother={true}
+        />
       </View>
     </SafeAreaView>
   );
@@ -205,7 +190,6 @@ export default function MultipleChoiceChallengeScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -216,18 +200,15 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: colors.primary,
     fontWeight: "600",
   },
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: colors.primary,
     marginBottom: 8,
   },
   description: {
     fontSize: 16,
-    color: colors.textSecondary,
     marginBottom: 24,
   },
   promptContainer: {
@@ -238,19 +219,16 @@ const styles = StyleSheet.create({
   },
   promptLabel: {
     fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 8,
   },
   promptText: {
     fontSize: 22,
     fontWeight: "700",
-    color: colors.primary,
     textAlign: "center",
   },
   optionsLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.text,
     marginBottom: 16,
   },
   optionsContainer: {
@@ -260,15 +238,12 @@ const styles = StyleSheet.create({
   optionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.background,
     padding: 16,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: colors.border,
     gap: 12,
   },
   optionSelected: {
-    borderColor: colors.primary,
     backgroundColor: "rgba(0, 40, 104, 0.05)",
   },
   optionCorrect: {
@@ -282,29 +257,21 @@ const styles = StyleSheet.create({
   optionLetter: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textSecondary,
   },
   optionText: {
     fontSize: 16,
-    color: colors.text,
     flex: 1,
   },
   optionTextSelected: {
     fontWeight: "600",
-    color: colors.primary,
   },
   submitButton: {
-    backgroundColor: colors.primary,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
   },
-  submitButtonDisabled: {
-    backgroundColor: colors.textLight,
-  },
   submitButtonText: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textWhite,
   },
 });

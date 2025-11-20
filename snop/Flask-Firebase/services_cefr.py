@@ -29,23 +29,46 @@ def get_cefr_config():
         dict - CEFR configuration with levels and daily_config
     """
     config_ref = db.collection("config").document("cefr_roadmap")
+    doc = config_ref.get()
 
-    # Always set unlimited limits
+    if doc.exists:
+        return doc.to_dict()
+
+    # Only set defaults if config doesn't exist
     default_config = {
         "levels": DEFAULT_PROGRESSION,
         "daily_config": {
-            "irl_limit": -1,  # unlimited
-            "listening_limit": -1,  # unlimited
-            "fill_blank_limit": -1,  # unlimited
-            "multiple_choice_limit": -1,  # unlimited
-            "pronunciation_limit": -1  # unlimited
+            "irl_limit": 3,
+            "listening_limit": 5,
+            "fill_blank_limit": 5,
+            "multiple_choice_limit": 5,
+            "pronunciation_limit": 5
         }
     }
 
-    # Force update to ensure unlimited limits are set
-    config_ref.set(default_config, merge=True)
-
+    config_ref.set(default_config)
     return default_config
+
+
+def update_cefr_config(updates):
+    """
+    Update CEFR configuration in Firestore (admin use).
+
+    Args:
+        updates: dict - Fields to update in the config
+
+    Returns:
+        dict - Updated CEFR configuration
+    """
+    config_ref = db.collection("config").document("cefr_roadmap")
+
+    # Ensure config exists first
+    doc = config_ref.get()
+    if not doc.exists:
+        get_cefr_config()  # Initialize defaults
+
+    config_ref.update(updates)
+    return get_cefr_config()
 
 
 def initialize_user_cefr_progress(uid):

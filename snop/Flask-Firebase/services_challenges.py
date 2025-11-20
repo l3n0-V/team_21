@@ -6,6 +6,12 @@ Handles challenge retrieval, creation, and rotation logic.
 from firebase_config import db
 from datetime import datetime, timezone, timedelta
 import random
+import logging
+
+# Import pool service functions
+from services_challenge_pool import get_challenges_from_pool, mark_challenge_used
+
+logger = logging.getLogger(__name__)
 
 def get_challenges_by_frequency(frequency):
     """
@@ -33,6 +39,7 @@ def get_challenges_by_frequency(frequency):
 def get_challenge_by_id(challenge_id):
     """
     Fetch a specific challenge by ID.
+    Checks challenge_pool first, then falls back to legacy challenges collection.
 
     Args:
         challenge_id: str - Document ID of the challenge
@@ -40,11 +47,20 @@ def get_challenge_by_id(challenge_id):
     Returns:
         dict - Challenge data or None if not found
     """
+    # Check challenge_pool first (new system)
+    doc = db.collection("challenge_pool").document(challenge_id).get()
+    if doc.exists:
+        challenge = doc.to_dict()
+        challenge["id"] = doc.id
+        return challenge
+
+    # Fallback to legacy challenges collection
     doc = db.collection("challenges").document(challenge_id).get()
     if doc.exists:
         challenge = doc.to_dict()
         challenge["id"] = doc.id
         return challenge
+
     return None
 
 
@@ -84,15 +100,35 @@ def get_all_challenges():
     return all_challenges
 
 
-# Challenge Rotation Functions
+# ============================================================================
+# DEPRECATED: Legacy Challenge Rotation Functions
+# ============================================================================
+# These functions are deprecated and will be removed in a future release.
+# Please use the CEFR-based challenge system instead:
+#   - get_todays_challenges_for_user(uid)
+#   - get_challenges_for_user_level(uid)
+#   - get_challenges_by_cefr_level(cefr_level)
+# ============================================================================
 
 def get_rotation_config():
     """
+    DEPRECATED: Use CEFR-based challenge system instead.
+
     Get or initialize the challenge rotation configuration.
+
+    Note: This function uses the config/challenge_rotation Firestore document
+    which is no longer the recommended approach.
 
     Returns:
         dict - Rotation configuration
     """
+    import warnings
+    warnings.warn(
+        "get_rotation_config() is deprecated. Use CEFR-based challenge system instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
     config_ref = db.collection("config").document("challenge_rotation")
     config_doc = config_ref.get()
 
@@ -159,7 +195,12 @@ def needs_rotation(last_rotation_str, frequency):
 
 def rotate_challenges(frequency, num_active=3):
     """
+    DEPRECATED: Use CEFR-based challenge system instead.
+
     Rotate challenges by randomly selecting active ones.
+
+    Note: This function uses the legacy config/challenge_rotation Firestore document.
+    New code should use get_todays_challenges_for_user(uid) instead.
 
     Args:
         frequency: str - "daily", "weekly", or "monthly"
@@ -168,6 +209,13 @@ def rotate_challenges(frequency, num_active=3):
     Returns:
         list - List of active challenge IDs
     """
+    import warnings
+    warnings.warn(
+        "rotate_challenges() is deprecated. Use CEFR-based challenge system instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
     # Get all challenges of this frequency
     all_challenges = get_challenges_by_frequency(frequency)
 
@@ -194,7 +242,12 @@ def rotate_challenges(frequency, num_active=3):
 
 def get_active_challenges(frequency):
     """
+    DEPRECATED: Use get_todays_challenges_for_user(uid) or get_challenges_by_frequency() instead.
+
     Get currently active challenges for a frequency with automatic rotation.
+
+    Note: For backwards compatibility, this now returns all challenges of the given
+    frequency instead of using the deprecated rotation system.
 
     Args:
         frequency: str - "daily", "weekly", or "monthly"
@@ -202,72 +255,49 @@ def get_active_challenges(frequency):
     Returns:
         list - List of active challenge dicts
     """
-    config = get_rotation_config()
-    last_rotation_key = f"last_{frequency}_rotation"
-    active_key = f"active_{frequency}"
+    import warnings
+    warnings.warn(
+        "get_active_challenges() is deprecated. Use get_todays_challenges_for_user(uid) for CEFR-based challenges "
+        "or get_challenges_by_frequency() for all challenges of a frequency.",
+        DeprecationWarning,
+        stacklevel=2
+    )
 
-    # Check if rotation is needed
-    if needs_rotation(config.get(last_rotation_key), frequency):
-        # Rotate challenges
-        active_ids = rotate_challenges(frequency)
-    else:
-        # Use existing active challenges
-        active_ids = config.get(active_key, [])
-
-    # If no active challenges, rotate now
-    if not active_ids:
-        active_ids = rotate_challenges(frequency)
-
-    # Fetch full challenge data
-    active_challenges = []
-    for challenge_id in active_ids:
-        challenge = get_challenge_by_id(challenge_id)
-        if challenge:
-            active_challenges.append(challenge)
-
-    return active_challenges
+    # For backwards compatibility, return all challenges of the given frequency
+    # instead of using the deprecated rotation system
+    return get_challenges_by_frequency(frequency)
 
 
 def get_rotation_status():
     """
+    DEPRECATED: The rotation system is no longer used. Use CEFR-based challenge system instead.
+
     Get the current rotation status for all frequencies.
 
-    Returns:
-        dict - Status for daily, weekly, and monthly rotations
-    """
-    config = get_rotation_config()
+    Note: This returns a simplified status that doesn't rely on the deprecated
+    config/challenge_rotation Firestore document.
 
+    Returns:
+        dict - Status for daily, weekly, and monthly rotations (deprecated format)
+    """
+    import warnings
+    warnings.warn(
+        "get_rotation_status() is deprecated. The rotation system has been replaced by the CEFR-based challenge system. "
+        "Use /api/challenges/today endpoint instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
+    # Return a simplified status that doesn't rely on config/challenge_rotation
     status = {}
     for frequency in ["daily", "weekly", "monthly"]:
-        last_rotation = config.get(f"last_{frequency}_rotation")
-        active_challenges = config.get(f"active_{frequency}", [])
-
-        # Calculate next rotation time
-        if last_rotation:
-            last_dt = datetime.fromisoformat(last_rotation.replace('Z', '+00:00'))
-            if frequency == "daily":
-                next_rotation = (last_dt + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-            elif frequency == "weekly":
-                # Next Monday
-                days_until_monday = (7 - last_dt.weekday()) % 7
-                if days_until_monday == 0:
-                    days_until_monday = 7
-                next_rotation = (last_dt + timedelta(days=days_until_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
-            else:  # monthly
-                # First day of next month
-                if last_dt.month == 12:
-                    next_rotation = last_dt.replace(year=last_dt.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-                else:
-                    next_rotation = last_dt.replace(month=last_dt.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
-
-            next_rotation_str = next_rotation.isoformat()
-        else:
-            next_rotation_str = "Not yet rotated"
-
+        challenges = get_challenges_by_frequency(frequency)
         status[frequency] = {
-            "active_challenges": active_challenges,
-            "last_rotation": last_rotation or "Never",
-            "next_rotation": next_rotation_str
+            "active_challenges": [c["id"] for c in challenges],
+            "last_rotation": "N/A - Rotation system deprecated",
+            "next_rotation": "N/A - Use CEFR-based system",
+            "total_available": len(challenges),
+            "deprecation_notice": "This endpoint is deprecated. Use /api/challenges/today for CEFR-based challenges."
         }
 
     return status
@@ -357,6 +387,8 @@ def get_todays_challenges_for_user(uid):
     Get today's available challenges for a user with completion status.
     This is the main endpoint for the new CEFR-based daily challenge system.
 
+    Now fetches from the challenge_pool collection instead of the old challenges collection.
+
     Args:
         uid: str - Firebase user ID
 
@@ -368,7 +400,7 @@ def get_todays_challenges_for_user(uid):
         get_completed_challenge_ids,
         get_current_utc_date
     )
-    from services_cefr import get_user_cefr_progress
+    from services_cefr import get_user_cefr_progress, get_available_levels_for_user
 
     # Get user's CEFR level and progress
     cefr_data = get_user_cefr_progress(uid)
@@ -380,14 +412,17 @@ def get_todays_challenges_for_user(uid):
 
     current_level = cefr_data.get("current_level", "A1")
 
-    # Get all available challenges for user's level(s)
-    challenges_by_type = get_challenges_for_user_level(uid)
+    # Get user's available levels (unlocked levels)
+    available_levels = get_available_levels_for_user(uid)
 
     # Get completion status for today
     completion_status = get_challenge_completion_status(uid)
 
     # Get completed challenge IDs for today
     completed_ids = get_completed_challenge_ids(uid)
+
+    # Define challenge types
+    challenge_types = ["irl", "listening", "fill_blank", "multiple_choice", "pronunciation"]
 
     # Build response
     response = {
@@ -396,15 +431,31 @@ def get_todays_challenges_for_user(uid):
         "challenges": {}
     }
 
-    for challenge_type, challenges in challenges_by_type.items():
+    # Fetch challenges from pool for each type
+    for challenge_type in challenge_types:
         status = completion_status.get(challenge_type, {})
         completed_challenge_ids = set(completed_ids.get(challenge_type, []))
 
-        # Filter out already completed challenges
-        available_challenges = [
-            challenge for challenge in challenges
-            if challenge.get("id") not in completed_challenge_ids
-        ]
+        try:
+            # Fetch from pool - get 5 challenges per type
+            pool_challenges = get_challenges_from_pool(
+                cefr_levels=available_levels,
+                types=[challenge_type],
+                count=5
+            )
+
+            # Filter out already completed challenges
+            available_challenges = [
+                challenge for challenge in pool_challenges
+                if challenge.get("id") not in completed_challenge_ids
+            ]
+
+            if not pool_challenges:
+                logger.warning(f"Pool empty for type '{challenge_type}' and levels {available_levels}")
+
+        except Exception as e:
+            logger.error(f"Error fetching from pool for type '{challenge_type}': {e}")
+            available_challenges = []
 
         response["challenges"][challenge_type] = {
             "available": available_challenges,
@@ -516,22 +567,26 @@ def generate_challenges_for_user(uid, count=5, challenge_types=None):
     }
 
 
-def submit_challenge_answer(uid, challenge_id, user_answer):
+def submit_challenge_answer(uid, challenge_id, user_answer, audio_url=None, xp_multiplier=1.0):
     """
-    Submit an answer for a challenge (listening, fill_blank, multiple_choice).
+    Submit an answer for ANY challenge type (listening, fill_blank, multiple_choice, pronunciation).
+    Unified endpoint that handles all challenge types with consistent response format.
 
     Args:
         uid: str - Firebase user ID
         challenge_id: str - Challenge ID
-        user_answer: int or str - User's answer (index for MC, text for fill_blank)
+        user_answer: int or str or None - User's answer (index for MC, text for fill_blank, None for pronunciation)
+        audio_url: str or None - Audio URL for pronunciation challenges
+        xp_multiplier: float - XP multiplier (1.0 for daily, 1.5 for weekly, 2.0 for monthly)
 
     Returns:
-        dict - Result with correctness, XP, and feedback
+        dict - Result with correctness, XP, feedback, and level progress
     """
     from services_daily_progress import can_complete_challenge, record_challenge_completion
     from services_cefr import increment_challenge_completion
-    from services_firestore import update_time_based_xp
+    from services_firestore import update_time_based_xp, add_attempt
     from firebase_admin import firestore
+    import os
 
     # Fetch challenge
     challenge = get_challenge_by_id(challenge_id)
@@ -540,6 +595,7 @@ def submit_challenge_answer(uid, challenge_id, user_answer):
 
     challenge_type = challenge.get("type")
     cefr_level = challenge.get("cefr_level", "A1")
+    difficulty = challenge.get("difficulty", 1)
 
     # Check if user can complete this challenge type today
     can_complete = can_complete_challenge(uid, challenge_type)
@@ -549,29 +605,111 @@ def submit_challenge_answer(uid, challenge_id, user_answer):
             "error": can_complete["reason"]
         }
 
-    # Check answer correctness
+    # Handle different challenge types
     correct = False
-    if challenge_type in ["listening", "multiple_choice"]:
-        correct_answer = challenge.get("correct_answer")
-        correct = (int(user_answer) == int(correct_answer))
+    xp_gained = 0
+    feedback = ""
+    similarity = None
+    transcription = None
+
+    if challenge_type == "pronunciation":
+        # Pronunciation challenge - requires audio_url
+        if not audio_url:
+            return {"success": False, "error": "audio_url is required for pronunciation challenges"}
+
+        target_phrase = challenge.get("target")
+        if not target_phrase:
+            return {"success": False, "error": "This challenge doesn't have a target phrase for pronunciation"}
+
+        # Import pronunciation services
+        from services_pronunciation import evaluate_pronunciation, mock_evaluate_pronunciation
+
+        # Check if we should use mock or real evaluation
+        use_mock = os.getenv("USE_MOCK_PRONUNCIATION", "false").lower() == "true"
+
+        try:
+            if use_mock:
+                result = mock_evaluate_pronunciation(target_phrase, difficulty)
+            else:
+                result = evaluate_pronunciation(audio_url, target_phrase, difficulty)
+
+            transcription = result.get("transcription")
+            similarity = result.get("similarity")
+            correct = result.get("pass", False)
+            xp_gained = int(result.get("xp_gained", 0) * xp_multiplier)
+            feedback = result.get("feedback", "")
+
+            # Store the attempt in Firestore for pronunciation
+            add_attempt(uid, challenge_id, audio_url, result)
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to evaluate pronunciation: {str(e)}"
+            }
+
+    elif challenge_type in ["listening", "multiple_choice"]:
+        # Multiple choice type challenges
+        if user_answer is None:
+            return {"success": False, "error": "user_answer is required for this challenge type"}
+
+        options = challenge.get("options", [])
+        correct_answer_index = challenge.get("correct_answer", 0)
+        correct_option = options[correct_answer_index] if correct_answer_index < len(options) else ""
+
+        # Support both index (legacy) and text (new) answer format
+        if isinstance(user_answer, int) or (isinstance(user_answer, str) and user_answer.isdigit()):
+            # User sent an index - this is the old format, compare directly
+            # This won't work with randomization, but kept for backwards compatibility
+            correct = (int(user_answer) == int(correct_answer_index))
+        else:
+            # User sent the actual option text - compare text values
+            correct = (str(user_answer).strip().lower() == correct_option.strip().lower())
+
+        base_xp = challenge.get("xp_reward", 10)
+        xp_gained = int((base_xp if correct else int(base_xp * 0.5)) * xp_multiplier)
+        feedback = "Correct! Well done!" if correct else "Not quite right. Try again!"
+
     elif challenge_type == "fill_blank":
+        # Fill in the blank challenge
+        if user_answer is None:
+            return {"success": False, "error": "user_answer is required for this challenge type"}
+
         correct_answer = challenge.get("missing_word", "").lower().strip()
         user_answer_normalized = str(user_answer).lower().strip()
         correct = (user_answer_normalized == correct_answer)
 
-    # Calculate XP
-    base_xp = challenge.get("xp_reward", 10)
-    xp_gained = base_xp if correct else int(base_xp * 0.5)  # Half XP for incorrect
+        base_xp = challenge.get("xp_reward", 10)
+        xp_gained = int((base_xp if correct else int(base_xp * 0.5)) * xp_multiplier)
+        feedback = "Correct! Well done!" if correct else f"Not quite right. The answer was: {challenge.get('missing_word', '')}"
+
+    else:
+        return {"success": False, "error": f"Unknown challenge type: {challenge_type}"}
 
     # Record completion in daily progress
+    additional_data = {"correct": correct}
+    if user_answer is not None:
+        additional_data["user_answer"] = user_answer
+    if similarity is not None:
+        additional_data["similarity"] = similarity
+    if transcription is not None:
+        additional_data["transcription"] = transcription
+
     record_challenge_completion(
         uid=uid,
         challenge_id=challenge_id,
         challenge_type=challenge_type,
         challenge_cefr_level=cefr_level,
         xp_gained=xp_gained,
-        additional_data={"correct": correct, "user_answer": user_answer}
+        additional_data=additional_data
     )
+
+    # Mark challenge as used in the pool for rotation tracking
+    try:
+        mark_challenge_used(challenge_id)
+    except Exception as e:
+        # Log but don't fail the submission if marking fails
+        logger.warning(f"Failed to mark challenge {challenge_id} as used: {e}")
 
     # Update CEFR progression
     if correct:
@@ -587,14 +725,12 @@ def submit_challenge_answer(uid, challenge_id, user_answer):
         "last_attempt_at": datetime.now(timezone.utc).isoformat()
     }, merge=True)
 
-    # Build response
-    feedback = "Correct! Well done!" if correct else "Not quite right. Try again!"
-
     # Get updated completion status
     from services_daily_progress import get_challenge_completion_status
     updated_status = get_challenge_completion_status(uid)
     type_status = updated_status.get(challenge_type, {})
 
+    # Build consistent response format
     response = {
         "success": True,
         "correct": correct,
@@ -606,6 +742,12 @@ def submit_challenge_answer(uid, challenge_id, user_answer):
             "can_complete_more": type_status.get("can_complete_more", True)
         }
     }
+
+    # Add pronunciation-specific fields
+    if similarity is not None:
+        response["similarity"] = similarity
+    if transcription is not None:
+        response["transcription"] = transcription
 
     # Add level up info if applicable
     if progression_result.get("level_up"):
@@ -625,5 +767,14 @@ def submit_challenge_answer(uid, challenge_id, user_answer):
         "required": level_progress.get("required", 20),
         "percentage": int((level_progress.get("completed", 0) / level_progress.get("required", 20)) * 100)
     }
+
+    # Check and award badges
+    from services_badges import check_and_award_badges, BADGES
+    badge_result = {"pass": correct, "xp_gained": xp_gained}
+    if similarity is not None:
+        badge_result["similarity"] = similarity
+    new_badges = check_and_award_badges(uid, badge_result)
+    if new_badges:
+        response["new_badges"] = [BADGES[badge_id] for badge_id in new_badges]
 
     return response

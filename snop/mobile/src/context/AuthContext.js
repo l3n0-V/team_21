@@ -68,8 +68,9 @@ export function AuthProvider({ children }) {
     // Listen to Firebase Auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in
-        const idToken = await firebaseUser.getIdToken();
+        // User is signed in - force token refresh on startup to ensure it's valid
+        console.log('🔄 Refreshing token on startup...');
+        const idToken = await firebaseUser.getIdToken(true);
         const userData = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,

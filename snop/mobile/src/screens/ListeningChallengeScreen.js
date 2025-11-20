@@ -9,21 +9,29 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as Speech from "expo-speech";
-import { colors } from "../styles/colors";
 import { usePerformance } from "../context/PerformanceContext";
 import { useChallenges } from "../context/ChallengeContext";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import FeedbackModal from "../components/FeedbackModal";
 
 export default function ListeningChallengeScreen({ route, navigation }) {
   const { challenge } = route.params;
   const { updatePerformance } = usePerformance();
   const { submitChallenge, loadTodaysChallenges, todaysChallenges } = useChallenges();
   const { token } = useAuth();
+  const { colors } = useTheme();
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [norwegianVoice, setNorwegianVoice] = useState(null);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackData, setFeedbackData] = useState({
+    isCorrect: false,
+    xpGained: 0,
+    message: '',
+  });
 
   // Find the best Norwegian voice on device
   useEffect(() => {
@@ -84,8 +92,9 @@ export default function ListeningChallengeScreen({ route, navigation }) {
     setLoading(true);
 
     try {
-      // Submit to backend
-      const result = await submitChallenge(token, challenge.id, selectedAnswer);
+      // Submit to backend - send the actual option text for proper comparison
+      const selectedOption = challenge.options[selectedAnswer];
+      const result = await submitChallenge(token, challenge.id, selectedOption);
 
       setSubmitted(true);
       setLoading(false);
@@ -102,71 +111,20 @@ export default function ListeningChallengeScreen({ route, navigation }) {
         console.warn("Failed to update performance:", perfError);
       }
 
-      const tryAnother = async () => {
-        // Wait a bit for backend to update, then reload
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await loadTodaysChallenges(token);
-
-        // Wait for state to update
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        // Get next available listening challenge
-        const listeningData = todaysChallenges?.challenges?.listening;
-        const nextChallenge = listeningData?.available?.[0];
-
-        if (nextChallenge && listeningData?.can_complete_more) {
-          // Navigate to new challenge (replace current screen)
-          navigation.replace("ListeningChallenge", { challenge: nextChallenge });
-        } else {
-          // No more challenges available
-          Alert.alert(
-            "Bra jobbet!",
-            "Ingen flere utfordringer tilgjengelig akkurat nå. Vil du generere nye?",
-            [
-              { text: "Gå til Today", onPress: () => navigation.navigate("Tabs", { screen: "Today" }) }
-            ]
-          );
-        }
-      };
-
       if (result.correct) {
-        Alert.alert(
-          "Riktig! 🎉",
-          `Du hørte riktig! Du fikk ${result.xp_gained} XP\n\nHva vil du gjøre nå?`,
-          [
-            {
-              text: "Gå til Today",
-              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
-              style: "default"
-            },
-            {
-              text: "Prøv en annen",
-              onPress: tryAnother,
-              style: "cancel"
-            }
-          ]
-        );
+        setFeedbackData({
+          isCorrect: true,
+          xpGained: result.xp_gained,
+          message: 'Du horte riktig!',
+        });
       } else {
-        Alert.alert(
-          "Nesten! 👂",
-          `Lytting er vanskelig - dette er helt normalt!\n\nRiktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}\n\nHva vil du gjøre?`,
-          [
-            {
-              text: "Prøv igjen",
-              onPress: () => {
-                setSubmitted(false);
-                setSelectedAnswer(null);
-              },
-              style: "cancel"
-            },
-            {
-              text: "Gå til Today",
-              onPress: () => navigation.navigate("Tabs", { screen: "Today" }),
-              style: "default"
-            }
-          ]
-        );
+        setFeedbackData({
+          isCorrect: false,
+          xpGained: 0,
+          message: `Riktig svar: ${result.correct_answer || challenge.options[challenge.correct_answer]}`,
+        });
       }
+      setFeedbackVisible(true);
     } catch (error) {
       setLoading(false);
       console.error("Failed to submit challenge:", error);
@@ -179,30 +137,30 @@ export default function ListeningChallengeScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
         <Pressable
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>← Tilbake</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Tilbake</Text>
         </Pressable>
 
-        <Text style={styles.title}>{challenge.title_no || challenge.title}</Text>
-        <Text style={styles.description}>
+        <Text style={[styles.title, { color: colors.primary }]}>{challenge.title_no || challenge.title}</Text>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           {challenge.description_no || challenge.description}
         </Text>
 
         <Pressable
           onPress={playAudio}
-          style={[styles.playButton, isPlaying && styles.playButtonActive]}
+          style={[styles.playButton, { backgroundColor: colors.primary }, isPlaying && styles.playButtonActive]}
         >
-          <Text style={styles.playButtonText}>
+          <Text style={[styles.playButtonText, { color: colors.textWhite }]}>
             {isPlaying ? "🔊 Spiller..." : "🔊 Spill av lyd"}
           </Text>
         </Pressable>
 
-        <Text style={styles.optionsLabel}>Velg riktig oversettelse:</Text>
+        <Text style={[styles.optionsLabel, { color: colors.textPrimary }]}>Velg riktig oversettelse:</Text>
 
         <View style={styles.optionsContainer}>
           {challenge.options.map((option, index) => (
@@ -210,7 +168,8 @@ export default function ListeningChallengeScreen({ route, navigation }) {
               key={index}
               style={[
                 styles.optionButton,
-                selectedAnswer === index && styles.optionSelected,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                selectedAnswer === index && [styles.optionSelected, { borderColor: colors.primary }],
                 submitted && index === challenge.correct_answer && styles.optionCorrect,
                 submitted && selectedAnswer === index && index !== challenge.correct_answer && styles.optionWrong,
               ]}
@@ -220,7 +179,8 @@ export default function ListeningChallengeScreen({ route, navigation }) {
               <Text
                 style={[
                   styles.optionText,
-                  selectedAnswer === index && styles.optionTextSelected,
+                  { color: colors.textPrimary },
+                  selectedAnswer === index && [styles.optionTextSelected, { color: colors.primary }],
                 ]}
               >
                 {option}
@@ -234,13 +194,38 @@ export default function ListeningChallengeScreen({ route, navigation }) {
             onPress={handleSubmit}
             style={[
               styles.submitButton,
-              selectedAnswer === null && styles.submitButtonDisabled,
+              { backgroundColor: colors.primary },
+              selectedAnswer === null && { opacity: 0.5 },
             ]}
             disabled={selectedAnswer === null}
           >
-            <Text style={styles.submitButtonText}>Send inn svar</Text>
+            <Text style={[styles.submitButtonText, { color: colors.textWhite }]}>Send inn svar</Text>
           </Pressable>
         )}
+
+        <FeedbackModal
+          visible={feedbackVisible}
+          isCorrect={feedbackData.isCorrect}
+          xpGained={feedbackData.xpGained}
+          message={feedbackData.message}
+          onTryAnother={async () => {
+            setFeedbackVisible(false);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const freshData = await loadTodaysChallenges(token);
+            const listeningData = freshData?.challenges?.listening;
+            const nextChallenge = listeningData?.available?.[0];
+            if (nextChallenge && listeningData?.can_complete_more) {
+              navigation.replace("ListeningChallenge", { challenge: nextChallenge });
+            } else {
+              navigation.navigate("Tabs", { screen: "Today" });
+            }
+          }}
+          onGoBack={() => {
+            setFeedbackVisible(false);
+            navigation.navigate("Tabs", { screen: "Today" });
+          }}
+          showTryAnother={true}
+        />
       </View>
     </SafeAreaView>
   );
@@ -249,7 +234,6 @@ export default function ListeningChallengeScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -260,22 +244,18 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: colors.primary,
     fontWeight: "600",
   },
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: colors.primary,
     marginBottom: 8,
   },
   description: {
     fontSize: 16,
-    color: colors.textSecondary,
     marginBottom: 24,
   },
   playButton: {
-    backgroundColor: colors.primary,
     padding: 20,
     borderRadius: 12,
     alignItems: "center",
@@ -287,12 +267,10 @@ const styles = StyleSheet.create({
   playButtonText: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textWhite,
   },
   optionsLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.text,
     marginBottom: 16,
   },
   optionsContainer: {
@@ -300,14 +278,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   optionButton: {
-    backgroundColor: colors.background,
     padding: 16,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: colors.border,
   },
   optionSelected: {
-    borderColor: colors.primary,
     backgroundColor: "rgba(0, 40, 104, 0.05)",
   },
   optionCorrect: {
@@ -320,24 +295,17 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: colors.text,
   },
   optionTextSelected: {
     fontWeight: "600",
-    color: colors.primary,
   },
   submitButton: {
-    backgroundColor: colors.primary,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
   },
-  submitButtonDisabled: {
-    backgroundColor: colors.textLight,
-  },
   submitButtonText: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textWhite,
   },
 });
