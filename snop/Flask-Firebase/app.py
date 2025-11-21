@@ -755,8 +755,12 @@ def verify_irl():
 
             # Fetch challenge for XP and CEFR level
             challenge = get_challenge_by_id(challenge_id)
-            xp_gained = challenge.get("xp_reward", 50)
+            base_xp = challenge.get("xp_reward", 50)
             cefr_level = challenge.get("cefr_level", "A1")
+
+            # Apply tiered XP based on verification
+            xp_multiplier = verification.get("xp_multiplier", 1.0)
+            xp_gained = int(base_xp * xp_multiplier)
 
             # Record completion
             record_challenge_completion(
@@ -786,11 +790,18 @@ def verify_irl():
 
             response = {
                 "success": True,
-                "verified": True,
+                "verified": verification.get("ai_verified", False),
+                "tier": verification.get("tier", "bronze"),
                 "xp_gained": xp_gained,
+                "max_xp": base_xp,
+                "xp_multiplier": xp_multiplier,
                 "photo_url": verification.get("photo_url"),
                 "gps_verified": verification.get("gps_verified"),
-                "feedback": "Great job! You completed your IRL challenge.",
+                "ai_verified": verification.get("ai_verified", False),
+                "feedback": verification.get("feedback", "Challenge completed!"),
+                "feedback_no": verification.get("feedback_no", "Utfordring fullført!"),
+                "photo_verification": verification.get("photo_verification"),
+                "text_verification": verification.get("text_verification"),
                 "completion_status": {
                     "irl_completed_today": irl_status.get("completed", 1),
                     "irl_limit": irl_status.get("limit", 1),
@@ -816,11 +827,12 @@ def verify_irl():
         gps_lat = body.get("gps_lat")
         gps_lng = body.get("gps_lng")
         text_description = body.get("text_description")
+        audio_base64 = body.get("audio_base64")
+        expected_phrase = body.get("expected_phrase")
 
         if not challenge_id:
             return jsonify({"error": "challenge_id is required"}), 400
-        if not photo_base64:
-            return jsonify({"error": "photo_base64 is required"}), 400
+        # photo_base64 is now optional - users can submit with just text for Bronze/Silver
 
         try:
             # Similar verification logic as above
@@ -834,7 +846,9 @@ def verify_irl():
                 photo_base64=photo_base64,
                 gps_lat=gps_lat,
                 gps_lng=gps_lng,
-                text_description=text_description
+                text_description=text_description,
+                audio_base64=audio_base64,
+                expected_phrase=expected_phrase
             )
 
             if not verification.get("success"):
@@ -842,8 +856,12 @@ def verify_irl():
 
             # Same completion logic as multipart version above
             challenge = get_challenge_by_id(challenge_id)
-            xp_gained = challenge.get("xp_reward", 50)
+            base_xp = challenge.get("xp_reward", 50)
             cefr_level = challenge.get("cefr_level", "A1")
+
+            # Apply tier multiplier
+            xp_multiplier = verification.get("xp_multiplier", 1.0)
+            xp_gained = int(base_xp * xp_multiplier)
 
             record_challenge_completion(
                 uid=uid,
@@ -869,11 +887,18 @@ def verify_irl():
 
             response = {
                 "success": True,
-                "verified": True,
+                "verified": verification.get("ai_verified", False),
+                "tier": verification.get("tier", "bronze"),
                 "xp_gained": xp_gained,
+                "max_xp": base_xp,
+                "xp_multiplier": xp_multiplier,
                 "photo_url": verification.get("photo_url"),
                 "gps_verified": verification.get("gps_verified"),
-                "feedback": "Great job! You completed your IRL challenge.",
+                "feedback": verification.get("feedback", "Challenge completed!"),
+                "feedback_no": verification.get("feedback_no", "Utfordring fullført!"),
+                "photo_verification": verification.get("photo_verification"),
+                "text_verification": verification.get("text_verification"),
+                "pronunciation": verification.get("pronunciation"),
                 "completion_status": {
                     "irl_completed_today": irl_status.get("completed", 1),
                     "irl_limit": irl_status.get("limit", 1),

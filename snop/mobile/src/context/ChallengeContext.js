@@ -193,17 +193,25 @@ export function ChallengeProvider({ children }) {
     }
   }, [loadTodaysChallenges, loadUserProgress]);
 
-  // Submit IRL challenge with photo
-  const submitIRLChallenge = useCallback(async (token, challengeId, photoUri, options = {}) => {
+  // Submit IRL challenge with optional photo and text
+  const submitIRLChallenge = useCallback(async (token, challengeId, photoBase64OrUri, options = {}) => {
     if (!token) throw new Error("Authentication required");
-    if (!photoUri) throw new Error("Photo required");
 
     try {
-      // Convert photo URI to base64
-      const base64 = await FileSystem.readAsStringAsync(photoUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const photoBase64 = `data:image/jpeg;base64,${base64}`;
+      // Handle photo - can be base64, URI, or null
+      let photoBase64 = null;
+      if (photoBase64OrUri) {
+        if (photoBase64OrUri.startsWith('data:')) {
+          // Already base64
+          photoBase64 = photoBase64OrUri;
+        } else {
+          // Convert URI to base64
+          const base64 = await FileSystem.readAsStringAsync(photoBase64OrUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          photoBase64 = `data:image/jpeg;base64,${base64}`;
+        }
+      }
 
       const result = await api.submitIRLChallenge(token, challengeId, photoBase64, options);
 
