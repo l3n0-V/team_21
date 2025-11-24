@@ -584,7 +584,7 @@ def submit_challenge_answer(uid, challenge_id, user_answer, audio_url=None, xp_m
     """
     from services_daily_progress import can_complete_challenge, record_challenge_completion
     from services_cefr import increment_challenge_completion
-    from services_firestore import update_time_based_xp, add_attempt
+    from services_firestore import update_time_based_xp, add_attempt, update_streak
     from firebase_admin import firestore
     import os
 
@@ -717,12 +717,14 @@ def submit_challenge_answer(uid, challenge_id, user_answer, audio_url=None, xp_m
     else:
         progression_result = {"level_up": False}
 
-    # Update user XP totals and time-based XP
+    # Update user XP totals, time-based XP, and streak
     update_time_based_xp(uid, xp_gained)
+    new_streak = update_streak(uid)
     user_ref = db.collection("users").document(uid)
     user_ref.set({
         "xp_total": firestore.Increment(xp_gained),
-        "last_attempt_at": datetime.now(timezone.utc).isoformat()
+        "last_attempt_at": datetime.now(timezone.utc).isoformat(),
+        "streak_days": new_streak
     }, merge=True)
 
     # Get updated completion status

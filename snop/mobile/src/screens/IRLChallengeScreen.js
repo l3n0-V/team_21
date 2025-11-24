@@ -10,7 +10,8 @@ import {
   SafeAreaView,
   Alert,
   TextInput,
-  Modal
+  Modal,
+  Linking
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -110,8 +111,12 @@ export default function IRLChallengeScreen() {
 
       if (status !== 'granted') {
         Alert.alert(
-          'Permission needed',
-          'Camera access is required to take photos for IRL challenges.'
+          'Kameratilgang kreves',
+          'For å ta bilder til IRL-utfordringer trenger vi tilgang til kameraet ditt. Vil du åpne innstillinger?',
+          [
+            { text: 'Avbryt', style: 'cancel' },
+            { text: 'Åpne innstillinger', onPress: () => Linking.openSettings() }
+          ]
         );
         return;
       }
