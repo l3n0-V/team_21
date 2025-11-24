@@ -1827,6 +1827,70 @@ mobile/
 
 ---
 
+---
+
+## Project Statistics
+
+### Commit Summary
+
+| Author | Commits |
+|--------|---------|
+| Henrik | 106 |
+| Eric | 90 |
+| Leon | 6 |
+
+### Code Contributions
+
+| Author | Files Touched | Lines Added | Lines Deleted |
+|--------|---------------|-------------|---------------|
+| Henrik | 506 | 53,803 | 17,083 |
+| Eric | 681 | 57,484 | 7,932 |
+| Leon | 12 | 342 | 168 |
+
+### Team Member Contributions
+
+#### Henrik Østrøm
+**Primary Areas:** Frontend UI/UX, Whisper And Other AI Integrations, Firebase Services
+
+**Key Contributions:**
+- Complete UI/UX overhauls (Progress Ring Navigation, Settings, Stats, Today screens)
+- Whisper AI integration and self-hosting configuration
+- Firebase audio service and authentication flows
+- Challenge frontend implementation across all screen types
+- Onboarding flow, challenge filters, and performance tracking
+- Norwegian language support with proper character handling (Æ, Ø, Å)
+- Frontend-backend coordination and API integration
+- Network error handling and debugging
+
+**Assessment:** Henrik successfully delivered on his assigned frontend responsibilities, taking ownership of the mobile app's user experience and AI integration. His work spans the full frontend stack from UI components to service integration, demonstrating strong execution on the visual and interactive aspects of the application.
+
+#### Eric
+**Primary Areas:** Backend Services, Challenge Generation System, Authentication, Firebase Services and maintainance
+
+**Key Contributions:**
+- Complete challenge generation backend system
+- Firebase Authentication (login, registration, Google auth)
+- Firebase Storage configuration and integration
+- Backend services for pronunciation scoring and challenge delivery
+- Dark mode implementation and settings functionality
+- Progress tracking system and stat tracking components
+- Privacy and terms pages
+- Initial frontend and backend project skeleton
+
+**Assessment:** Eric fulfilled his backend responsibilities comprehensively, building the core server infrastructure and challenge generation system. His work establishing the Firebase authentication and storage services provided the foundation for user data management. He also contributed significantly to frontend features like dark mode and progress tracking, showing cross-functional capability.
+
+#### Leon Vikanes
+**Primary Areas:** Initial Setup, UI Polish, Documentation
+
+**Key Contributions:**
+- Initial project repository setup and commit
+- UI polish work on dedicated branch (ui_polish_leon)
+- Project deliverable report (Overleaf)
+
+**Assessment:** Leon's code contributions are limited compared to other team members, with only 6 commits affecting 12 files. However, his primary responsibility has been the project deliverable report in Overleaf, which represents significant work not captured in git statistics. His initial setup work established the project foundation, and his UI polish contributions, while smaller in scope, added refinement to the user interface.
+
+---
+
 **Report Maintained By:** Claude Code (Frontend Report Specialist)
-**Last Updated:** November 19, 2025 23:45 UTC
+**Last Updated:** November 24, 2025
 
