@@ -710,7 +710,7 @@ def verify_irl():
     from services_daily_progress import can_complete_challenge, record_challenge_completion
     from services_challenges import get_challenge_by_id
     from services_cefr import increment_challenge_completion
-    from services_firestore import update_time_based_xp
+    from services_firestore import update_time_based_xp, update_streak
     from firebase_admin import firestore
 
     uid = request.user["uid"]
@@ -775,12 +775,14 @@ def verify_irl():
             # Update CEFR progression
             progression_result = increment_challenge_completion(uid, cefr_level)
 
-            # Update user XP
+            # Update user XP and streak
             update_time_based_xp(uid, xp_gained)
+            new_streak = update_streak(uid)
             user_ref = db.collection("users").document(uid)
             user_ref.set({
                 "xp_total": firestore.Increment(xp_gained),
-                "last_attempt_at": datetime.now().isoformat()
+                "last_attempt_at": datetime.now().isoformat(),
+                "streak_days": new_streak
             }, merge=True)
 
             # Build response
@@ -875,10 +877,12 @@ def verify_irl():
             progression_result = increment_challenge_completion(uid, cefr_level)
 
             update_time_based_xp(uid, xp_gained)
+            new_streak = update_streak(uid)
             user_ref = db.collection("users").document(uid)
             user_ref.set({
                 "xp_total": firestore.Increment(xp_gained),
-                "last_attempt_at": datetime.now().isoformat()
+                "last_attempt_at": datetime.now().isoformat(),
+                "streak_days": new_streak
             }, merge=True)
 
             from services_daily_progress import get_challenge_completion_status

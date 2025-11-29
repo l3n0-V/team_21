@@ -1,12 +1,19 @@
 import { Audio } from "expo-av";
-import { Platform } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage, ensureAuth } from './firebase';
 
 export async function startRecording() {
   const permission = await Audio.requestPermissionsAsync();
   if (!permission.granted) {
-    alert("Microphone permission is required.");
+    Alert.alert(
+      'Mikrofontilgang kreves',
+      'For å spille inn lyd trenger vi tilgang til mikrofonen din. Vil du åpne innstillinger?',
+      [
+        { text: 'Avbryt', style: 'cancel' },
+        { text: 'Åpne innstillinger', onPress: () => Linking.openSettings() }
+      ]
+    );
     return null;
   }
   await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });

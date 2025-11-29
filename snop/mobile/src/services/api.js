@@ -298,6 +298,18 @@ const MockAdapter = {
       },
       recent_completions: []
     };
+  },
+
+  async updateProfile(token, profileData) {
+    await delay(500);
+    console.log('MockAdapter.updateProfile called', profileData);
+    return { success: true, message: 'Profile updated (mock)' };
+  },
+
+  async deleteAccount(token) {
+    await delay(500);
+    console.log('MockAdapter.deleteAccount called');
+    return { success: true, message: 'Account deleted (mock)' };
   }
 };
 
@@ -604,6 +616,33 @@ const HttpAdapter = {
     return this.retryFetch(async () => {
       const res = await this.fetchWithTimeout(`${API_BASE_URL}/api/user/progress`, {
         method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return this.handleResponse(res);
+    });
+  },
+
+  async updateProfile(token, profileData) {
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/user/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(profileData)
+      });
+      return this.handleResponse(res);
+    });
+  },
+
+  async deleteAccount(token) {
+    return this.retryFetch(async () => {
+      const res = await this.fetchWithTimeout(`${API_BASE_URL}/user/account`, {
+        method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

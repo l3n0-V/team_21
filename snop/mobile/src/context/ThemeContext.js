@@ -3,7 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { defaultTheme } from '../styles/themes';
 import { getThemeById } from '../styles/themes';
 
-const ThemeContext = createContext();
+const ThemeContext = createContext({
+  theme: defaultTheme,
+  colors: defaultTheme.colors,
+  changeTheme: () => {},
+  isLoading: false,
+});
 
 const THEME_STORAGE_KEY = '@snop_theme_preference';
 
